@@ -1,0 +1,25 @@
+{
+  "governance_root": ".governance/ai",
+  "local_overrides": ".governance-local/overrides.yaml",
+  "entrypoints": [
+    ".governance/ai/00_INDEX/README.md",
+    ".governance/ai/core/CONFIG.md",
+    ".governance/ai/core/DOC_TYPES.md",
+    "CLAUDE.md"
+  ],
+  "optional_context": [
+    "AGENTS.md",
+    "docs/_shared/",
+    ".ai/ledger/LEDGER.md",
+    ".governance/DIRECTORY_CONTRACT.md",
+    ".ai/inference/directory-contract/INFERENCE.md",
+    ".ai/inference/file-lifecycle/INFERENCE.md"
+  ],
+  "ai_artifacts": {
+    "root": ".ai",
+    "scratch": ".ai/_scratch",
+    "bundles": ".ai/bundles",
+    "ledger": ".ai/ledger/LEDGER.md",
+    "keep_outputs": ".ai/_out"
+  }
+}
