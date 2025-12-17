@@ -25,6 +25,22 @@ Even if technically capable, AI assistants MUST use micro-batch mode:
 
 This constraint prevents "helpful but destructive" behavior where AI completes work too quickly, overwhelming the UI or bypassing safety checks.
 
+**The AI must ALWAYS investigate errors and document prevention measures.**
+
+When ANY error occurs during a session:
+1. **Investigate root cause** - Don't just retry, understand WHY it failed
+2. **Document the pattern** - Add to appropriate documentation (troubleshooting, CLAUDE.md, etc.)
+3. **Create prevention rules** - Add instructions to prevent the same failure in the future
+4. **Update command mappings** - If the error relates to paths/context, add to command-to-path mappings
+
+This applies to:
+- Terraform/tofu errors (state, providers, credentials)
+- Shell/path errors (wrong directory, missing files)
+- Git/submodule errors (stuck states, orphaned references)
+- Any repeated failure pattern
+
+**Repeated failures of the same type are unacceptable.** If an error occurs twice, the AI MUST stop and document the prevention measure before proceeding.
+
 
 ## Core Principles
 
@@ -472,6 +488,8 @@ Which would you prefer?"
 - ✅ Update state cache after deployments
 - ✅ Use conventional commit messages
 - ✅ Add co-authorship footer
+- ✅ Investigate errors and document prevention (NO EXCEPTION)
+- ✅ Verify working directory before path-sensitive commands
 
 **Never**:
 - ❌ Write >2 files per batch
@@ -484,6 +502,8 @@ Which would you prefer?"
 - ❌ Force push to main/master (unless explicit)
 - ❌ Skip dependency checks
 - ❌ Use generic error messages
+- ❌ Retry blindly without investigating error cause
+- ❌ Allow same error to occur twice without documenting fix
 
 
 ## Related Documentation
