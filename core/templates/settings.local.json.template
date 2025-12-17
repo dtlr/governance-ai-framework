@@ -1,0 +1,48 @@
+{
+  "description": "Claude Code permission controls - customize per repo",
+  "allowedCommands": {
+    "description": "Shell commands Claude can execute without approval",
+    "patterns": [
+      "bash grep *",
+      "bash rg *",
+      "bash find *",
+      "bash ls *",
+      "bash git status",
+      "bash git diff *",
+      "bash git log *",
+      "bash {{PRIMARY_CLI}} plan *",
+      "bash {{PRIMARY_CLI}} state list *",
+      "bash {{PRIMARY_CLI}} state show *",
+      "bash pnpm *",
+      "bash npm *"
+    ]
+  },
+  "deniedCommands": {
+    "description": "Shell commands Claude must request approval for",
+    "patterns": [
+      "bash rm *",
+      "bash {{PRIMARY_CLI}} apply *",
+      "bash {{PRIMARY_CLI}} destroy *",
+      "bash git push *",
+      "bash git commit *"
+    ]
+  },
+  "defaultEditMode": {
+    "description": "How Claude handles file edits",
+    "value": "acceptEdits",
+    "options": ["acceptEdits", "requestApproval", "denyEdits"]
+  },
+  "enabledTools": {
+    "description": "Which tools Claude can use",
+    "tools": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ]
+  }
+}
