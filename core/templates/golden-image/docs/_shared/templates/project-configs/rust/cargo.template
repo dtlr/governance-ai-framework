@@ -1,0 +1,303 @@
+# Cargo.toml Template
+
+## Purpose
+
+Rust package manifest - defines metadata, dependencies, features, and build configuration. Required for all Rust projects.
+
+## Official Documentation
+
+- [Cargo Book - Manifest](https://doc.rust-lang.org/cargo/reference/manifest.html) - Complete reference
+- [Cargo Book - Specifying Dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) - Dependency syntax
+- [crates.io](https://crates.io/) - Package registry
+
+## When to Use
+
+- ✅ Any Rust project
+- ✅ Required for Rust projects
+
+## When NOT to Use
+
+- ❌ Non-Rust projects
+
+## Required Marker Files
+
+- This IS the marker file for Rust projects
+
+## Template
+
+### Binary Application
+
+```toml
+[package]
+name = "<PROJECT_NAME>"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"  # MSRV
+description = "<PROJECT_DESCRIPTION>"
+authors = ["<AUTHOR_NAME> <<AUTHOR_EMAIL>>"]
+license = "MIT"
+repository = "https://github.com/<ORG>/<REPO>"
+
+[dependencies]
+# Add dependencies here
+# serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+# Test dependencies
+# mockall = "0.12"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+```
+
+### Library
+
+```toml
+[package]
+name = "<LIBRARY_NAME>"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "<LIBRARY_DESCRIPTION>"
+authors = ["<AUTHOR_NAME> <<AUTHOR_EMAIL>>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/<ORG>/<REPO>"
+documentation = "https://docs.rs/<LIBRARY_NAME>"
+readme = "README.md"
+keywords = ["<KEYWORD1>", "<KEYWORD2>"]
+categories = ["<CATEGORY>"]
+
+[lib]
+name = "<LIBRARY_NAME>"
+path = "src/lib.rs"
+
+[dependencies]
+# Runtime dependencies
+
+[dev-dependencies]
+# Test dependencies
+
+[features]
+default = []
+# feature_name = ["dep:optional_dep"]
+```
+
+### Async Application (Tokio)
+
+```toml
+[package]
+name = "<PROJECT_NAME>"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.release]
+lto = true
+```
+
+### CLI Application (Clap)
+
+```toml
+[package]
+name = "<PROJECT_NAME>"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "<BIN_NAME>"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+strip = true
+```
+
+### Web Service (Axum)
+
+```toml
+[package]
+name = "<PROJECT_NAME>"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = ["json"] }
+```
+
+### Workspace
+
+```toml
+# Root Cargo.toml
+[workspace]
+resolver = "2"
+members = [
+    "crates/*",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+repository = "https://github.com/<ORG>/<REPO>"
+
+[workspace.dependencies]
+# Shared dependencies with versions
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
+```
+
+```toml
+# crates/core/Cargo.toml
+[package]
+name = "myproject-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+```
+
+## Dependency Syntax
+
+```toml
+[dependencies]
+# Simple version
+serde = "1"
+
+# With features
+serde = { version = "1", features = ["derive"] }
+
+# Optional dependency
+tokio = { version = "1", optional = true }
+
+# Git dependency
+my_crate = { git = "https://github.com/user/repo", branch = "main" }
+
+# Path dependency (for workspace)
+my_other_crate = { path = "../other" }
+
+# Platform-specific
+[target.'cfg(unix)'.dependencies]
+nix = "0.28"
+```
+
+## Version Syntax
+
+| Syntax | Meaning |
+|--------|---------|
+| `"1.0.0"` | Exactly 1.0.0 |
+| `"1.0"` | >=1.0.0, <2.0.0 (SemVer) |
+| `"1"` | >=1.0.0, <2.0.0 |
+| `"^1.0.0"` | Same as "1.0.0" |
+| `"~1.0.0"` | >=1.0.0, <1.1.0 |
+| `"=1.0.0"` | Exactly 1.0.0 |
+| `">=1, <2"` | Range |
+
+## Features
+
+```toml
+[features]
+default = ["std"]
+std = []
+async = ["dep:tokio"]
+full = ["std", "async"]
+
+[dependencies]
+tokio = { version = "1", optional = true }
+```
+
+## Profiles
+
+```toml
+# Development (default for `cargo build`)
+[profile.dev]
+opt-level = 0
+debug = true
+
+# Release (for `cargo build --release`)
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1
+
+# Custom profile
+[profile.profiling]
+inherits = "release"
+debug = true
+```
+
+## Commands
+
+```bash
+# Add dependency
+cargo add serde --features derive
+
+# Remove dependency
+cargo remove serde
+
+# Update to latest within constraints
+cargo update
+
+# Check outdated
+cargo install cargo-outdated
+cargo outdated
+```
+
+## Customization Points
+
+| Placeholder | Description |
+|-------------|-------------|
+| `<PROJECT_NAME>` | Package name (snake_case) |
+| `<PROJECT_DESCRIPTION>` | One-line description |
+| `<AUTHOR_NAME>` | Author name |
+| `<AUTHOR_EMAIL>` | Author email |
+| `<ORG>/<REPO>` | GitHub org/repo |
+
+## Validation
+
+```bash
+# Check Cargo.toml syntax
+cargo verify-project
+
+# Check dependencies resolve
+cargo check
+
+# Audit for vulnerabilities
+cargo install cargo-audit
+cargo audit
+```

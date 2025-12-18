@@ -17,6 +17,10 @@ These rules are **global** - they apply to every repository using the governance
 | **Repo Router** | `repo-router.md` | Directory→purpose mapping | Navigating repo |
 | **Submodule Management** | `submodule-management.md` | Governance version/update workflow | Updating governance |
 | **Cookbook Patterns** | `claude-cookbook-patterns.md` | Efficiency/accuracy patterns from Anthropic | Optimization tasks |
+| **Project Type Detection** | `project-type-detection.md` | Detect project stacks, guide config relevance | Creating configs, suggesting tooling |
+| **Cost Optimization** | `cost-optimization.md` | Track prompt-to-cost patterns, efficiency feedback | Every session (mandatory tracking) |
+| **Cost-Optimal Routing** | `cost-optimal-routing.md` | Tiered routing strategy, minimize AI costs | Designing pipelines, model selection |
+| **Wiring Guide** | `wiring-guide.md` | How to connect lazy loading components | Setting up new repos, debugging wiring |
 
 ---
 
@@ -82,6 +86,48 @@ Key patterns:
 - Orchestrator-workers (complex task decomposition)
 - Evaluator-optimizer (iterative refinement)
 
+### Project Type Detection (`project-type-detection.md`)
+**Core principle**: Detect project types from marker files and suggest only relevant configs.
+
+Key points:
+- Marker file scanning (package.json, go.mod, *.tf, etc.)
+- Negative inference (when configs are NOT relevant)
+- Polyglot/monorepo handling (multiple stacks)
+- Config templates: `core/templates/golden-image/docs/_shared/templates/project-configs/`
+
+### Cost Optimization (`cost-optimization.md`)
+**Core principle**: Create feedback loop between prompts and costs to continuously improve efficiency.
+
+Key points:
+- Mandatory tracking: Tokens, Cost, Context in every ledger entry
+- Cost expectations by operation type (explore, create, refactor, etc.)
+- Model selection rules (Haiku/Sonnet/Opus)
+- Efficiency patterns (progressive loading, batching, specificity)
+- Weekly review protocol for continuous improvement
+
+### Cost-Optimal Routing (`cost-optimal-routing.md`)
+**Core principle**: The cheapest AI is the AI you don't call. Route through cost tiers.
+
+Key points:
+- Tier 0: No model call (use deterministic tools first)
+- Tier 1: Cheap model, tiny context (classification, extraction)
+- Tier 2: Mid model for structured planning
+- Tier 3: Expensive model only for hard reasoning
+- Pointer packs instead of context stuffing
+- Content-hash caching for repeated operations
+- Confidence gates to avoid unnecessary escalation
+
+### Wiring Guide (`wiring-guide.md`)
+**Core principle**: Practical guide for connecting lazy loading system components.
+
+Key points:
+- How manifest.json connects to everything
+- How CLAUDE.md hierarchy wires together (Tier 1 → 2 → 3)
+- How router.md triggers context loading
+- Step-by-step instructions for wiring new repos
+- Pointer patterns (forward, back, cross, governance references)
+- Validation checklist and common wiring mistakes
+
 ---
 
 ## Loading Strategy
@@ -103,6 +149,19 @@ Load when exploring/routing:
 ### On Governance Updates
 Load when updating the submodule:
 - `submodule-management.md` - Know the version workflow
+
+### On Config Creation/Tooling Suggestions
+Load when creating config files or suggesting tooling:
+- `project-type-detection.md` - Know which configs are relevant
+
+### On Cost/Efficiency Questions
+Load when discussing costs or optimization:
+- `cost-optimization.md` - Know tracking requirements and patterns
+- `cost-optimal-routing.md` - Know the tiered routing strategy
+
+### On System Setup/Wiring
+Load when setting up new repos or debugging context loading:
+- `wiring-guide.md` - Know how to connect components
 
 ---
 

@@ -1,0 +1,250 @@
+# go.mod Template
+
+## Purpose
+
+Defines a Go module - its path, Go version, and dependencies. Required for any Go project using modules (the standard since Go 1.16).
+
+## Official Documentation
+
+- [Go Modules Reference](https://go.dev/ref/mod) - Complete reference
+- [Go Module Tutorial](https://go.dev/doc/tutorial/create-module) - Getting started
+- [Version Selection](https://go.dev/ref/mod#version-queries) - How versions are resolved
+
+## When to Use
+
+- ✅ Any Go project
+- ✅ Required for Go 1.16+ projects
+- ✅ Multi-module repositories (workspace)
+
+## When NOT to Use
+
+- ❌ Non-Go projects
+- ❌ Pre-Go 1.11 projects (legacy GOPATH mode)
+
+## Required Marker Files
+
+- This IS the marker file for Go projects
+
+## Template
+
+### Basic Module
+
+```
+// go.mod
+module <MODULE_PATH>
+
+go <GO_VERSION>
+```
+
+Example:
+```
+module github.com/myorg/myproject
+
+go 1.22
+```
+
+### With Dependencies
+
+```
+module github.com/myorg/myproject
+
+go 1.22
+
+require (
+    github.com/gin-gonic/gin v1.9.1
+    github.com/lib/pq v1.10.9
+    go.uber.org/zap v1.27.0
+)
+
+require (
+    // indirect dependencies (auto-managed)
+    github.com/bytedance/sonic v1.9.1 // indirect
+    github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+)
+```
+
+### With Replacements (Development)
+
+```
+module github.com/myorg/myproject
+
+go 1.22
+
+require (
+    github.com/myorg/shared-lib v1.0.0
+)
+
+// Local development override
+replace github.com/myorg/shared-lib => ../shared-lib
+```
+
+### With Private Modules
+
+```
+module github.com/myorg/myproject
+
+go 1.22
+
+require (
+    github.com/myorg/private-lib v1.2.0
+)
+```
+
+Configure authentication:
+```bash
+# In .gitconfig or GOPRIVATE
+export GOPRIVATE=github.com/myorg/*
+
+# Or use .netrc for authentication
+```
+
+### Go Workspace (Multi-module)
+
+```
+// go.work (at repo root)
+go 1.22
+
+use (
+    ./cmd/api
+    ./cmd/worker
+    ./pkg/shared
+)
+```
+
+## Commands
+
+```bash
+# Initialize new module
+go mod init github.com/myorg/myproject
+
+# Add dependency
+go get github.com/gin-gonic/gin@latest
+
+# Add specific version
+go get github.com/gin-gonic/gin@v1.9.1
+
+# Update all dependencies
+go get -u ./...
+
+# Update specific dependency
+go get -u github.com/gin-gonic/gin
+
+# Remove unused dependencies
+go mod tidy
+
+# Verify dependencies
+go mod verify
+
+# Download dependencies
+go mod download
+
+# Show dependency graph
+go mod graph
+
+# Show why a dependency is needed
+go mod why github.com/some/dep
+```
+
+## Version Syntax
+
+| Syntax | Meaning |
+|--------|---------|
+| `v1.2.3` | Exact version |
+| `latest` | Most recent version |
+| `v1.2` | Latest v1.2.x |
+| `v1` | Latest v1.x.x |
+| `@main` | Branch tip (not recommended for production) |
+| `@commit-hash` | Specific commit |
+
+## go.sum File
+
+Auto-generated checksums for dependencies. **Don't edit manually.**
+
+```
+# go.sum (auto-generated)
+github.com/gin-gonic/gin v1.9.1 h1:4idEAncQnU5cB7BeOkPt...
+github.com/gin-gonic/gin v1.9.1/go.mod h1:RdlIFy4bpu...
+```
+
+**Commit both `go.mod` and `go.sum`** for reproducible builds.
+
+## Directive Reference
+
+| Directive | Purpose |
+|-----------|---------|
+| `module` | Module path |
+| `go` | Go version |
+| `require` | Dependencies |
+| `exclude` | Prevent specific version |
+| `replace` | Override module location |
+| `retract` | Mark versions as retracted |
+| `toolchain` | Go toolchain version (Go 1.21+) |
+
+## Private Modules
+
+```bash
+# Set private module patterns
+export GOPRIVATE=github.com/myorg/*,gitlab.mycompany.com/*
+
+# Or in .gitconfig
+[url "ssh://git@github.com/"]
+    insteadOf = https://github.com/
+```
+
+## Vendoring
+
+```bash
+# Create vendor directory
+go mod vendor
+
+# Build using vendor
+go build -mod=vendor ./...
+```
+
+## Makefile Integration
+
+```makefile
+.PHONY: deps tidy verify
+
+deps:
+	go mod download
+
+tidy:
+	go mod tidy
+
+verify:
+	go mod verify
+
+update:
+	go get -u ./...
+	go mod tidy
+```
+
+## Common Issues
+
+### "Module not found"
+```bash
+# Check GOPRIVATE for private repos
+export GOPRIVATE=github.com/myorg/*
+
+# Or check proxy settings
+export GOPROXY=https://proxy.golang.org,direct
+```
+
+### "Checksum mismatch"
+```bash
+# Clear module cache
+go clean -modcache
+
+# Re-download
+go mod download
+```
+
+### "Dependency conflict"
+```bash
+# See why dependency is included
+go mod why github.com/conflicting/dep
+
+# See dependency graph
+go mod graph | grep conflicting
+```

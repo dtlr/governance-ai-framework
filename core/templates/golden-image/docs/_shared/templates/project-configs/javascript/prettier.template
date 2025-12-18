@@ -1,0 +1,325 @@
+# Prettier Configuration Template
+
+## Purpose
+
+Opinionated code formatter for JavaScript, TypeScript, CSS, JSON, Markdown, and more. Enforces consistent style without debates.
+
+## Official Documentation
+
+- [Prettier Options](https://prettier.io/docs/en/options) - All configuration options
+- [Configuration Files](https://prettier.io/docs/en/configuration) - Config file formats
+- [Editor Integration](https://prettier.io/docs/en/editors) - IDE setup
+
+## When to Use
+
+- ✅ Any JavaScript/TypeScript project
+- ✅ Projects wanting consistent formatting
+- ✅ Teams wanting to avoid style debates
+
+## When NOT to Use
+
+- ❌ Projects using Biome (has built-in formatter)
+- ❌ Projects where team strongly prefers manual formatting
+- ❌ Non-code files only (use project-specific formatters)
+
+## Required Marker Files
+
+- `package.json`
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| [Biome](https://biomejs.dev/) | Faster, all-in-one (lint + format) |
+| [dprint](https://dprint.dev/) | Faster, more configurable |
+| ESLint rules | When you need more control (not recommended) |
+
+## Template
+
+### JSON Format (.prettierrc)
+
+```json
+{
+  "semi": true,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "useTabs": false,
+  "trailingComma": "es5",
+  "printWidth": 80,
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "endOfLine": "lf"
+}
+```
+
+### JavaScript Format (prettier.config.js)
+
+```javascript
+// prettier.config.js
+/** @type {import("prettier").Config} */
+const config = {
+  semi: true,
+  singleQuote: false,
+  tabWidth: 2,
+  useTabs: false,
+  trailingComma: "es5",
+  printWidth: 80,
+  bracketSpacing: true,
+  arrowParens: "always",
+  endOfLine: "lf",
+
+  // Override for specific files
+  overrides: [
+    {
+      files: "*.md",
+      options: {
+        proseWrap: "always",
+        printWidth: 100,
+      },
+    },
+    {
+      files: "*.json",
+      options: {
+        tabWidth: 2,
+      },
+    },
+  ],
+};
+
+export default config;
+```
+
+### With Tailwind CSS Plugin
+
+```javascript
+// prettier.config.js
+/** @type {import("prettier").Config} */
+const config = {
+  semi: true,
+  singleQuote: false,
+  tabWidth: 2,
+  trailingComma: "es5",
+  plugins: ["prettier-plugin-tailwindcss"],
+  // Tailwind plugin options
+  tailwindFunctions: ["clsx", "cn"],
+};
+
+export default config;
+```
+
+## Common Configuration Choices
+
+### Semi-colons
+
+```json
+{
+  "semi": true    // const x = 1;
+  "semi": false   // const x = 1
+}
+```
+
+### Quotes
+
+```json
+{
+  "singleQuote": false,  // "string"
+  "singleQuote": true,   // 'string'
+  "jsxSingleQuote": false // JSX uses double regardless
+}
+```
+
+### Trailing Commas
+
+```json
+{
+  "trailingComma": "none",  // No trailing commas
+  "trailingComma": "es5",   // Where valid in ES5 (objects, arrays)
+  "trailingComma": "all"    // Everywhere (function params too)
+}
+```
+
+### Print Width
+
+```json
+{
+  "printWidth": 80,   // Classic terminal width
+  "printWidth": 100,  // Modern screens
+  "printWidth": 120   // Wide monitors
+}
+```
+
+## Popular Presets
+
+### Airbnb-ish
+```json
+{
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "printWidth": 100
+}
+```
+
+### Standard-ish (no semi)
+```json
+{
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "none"
+}
+```
+
+### Minimal (Prettier defaults)
+```json
+{}
+```
+
+## Dependencies
+
+```bash
+# Basic
+npm install -D prettier
+
+# With ESLint integration
+npm install -D prettier eslint-config-prettier eslint-plugin-prettier
+
+# With Tailwind
+npm install -D prettier prettier-plugin-tailwindcss
+
+# With import sorting
+npm install -D prettier @trivago/prettier-plugin-sort-imports
+```
+
+## npm Scripts
+
+```json
+{
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  }
+}
+```
+
+## .prettierignore
+
+Create alongside config to exclude files:
+
+```gitignore
+# Build outputs
+dist/
+build/
+.next/
+
+# Dependencies
+node_modules/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated
+coverage/
+*.min.js
+```
+
+## Editor Integration
+
+### VS Code
+
+Install "Prettier - Code formatter" extension, then:
+
+```json
+// .vscode/settings.json
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
+```
+
+### Pre-commit Hook
+
+With Husky + lint-staged:
+
+```json
+// package.json
+{
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx,json,md}": "prettier --write"
+  }
+}
+```
+
+## ESLint Integration
+
+To avoid ESLint/Prettier conflicts:
+
+**Option 1: Disable ESLint formatting rules**
+```javascript
+// eslint.config.js
+import prettier from "eslint-config-prettier";
+
+export default [
+  // ... other configs
+  prettier, // Disables conflicting rules
+];
+```
+
+**Option 2: Run Prettier through ESLint**
+```javascript
+// eslint.config.js
+import prettierPlugin from "eslint-plugin-prettier/recommended";
+
+export default [
+  // ... other configs
+  prettierPlugin, // Runs Prettier as ESLint rule
+];
+```
+
+## Validation
+
+```bash
+# Check if files are formatted
+npx prettier --check .
+
+# Format all files
+npx prettier --write .
+
+# Format specific files
+npx prettier --write "src/**/*.ts"
+
+# Check single file
+npx prettier --check src/index.ts
+```
+
+## Inline Overrides
+
+Disable Prettier for specific code:
+
+```javascript
+// prettier-ignore
+const matrix = [
+  1, 0, 0,
+  0, 1, 0,
+  0, 0, 1,
+];
+```
+
+```html
+<!-- prettier-ignore -->
+<pre>Preserve   whitespace</pre>
+```
+
+```markdown
+<!-- prettier-ignore -->
+| Keep | This | Table | Format |
+```

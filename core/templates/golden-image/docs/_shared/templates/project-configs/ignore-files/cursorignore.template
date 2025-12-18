@@ -1,0 +1,255 @@
+# .cursorignore Template
+
+## Purpose
+
+Exclude files from Cursor IDE's AI context. Reduces noise, improves AI response quality, and protects sensitive information from being sent to AI models.
+
+## Official Documentation
+
+- [Cursor Documentation](https://cursor.com/docs) - IDE documentation
+- Similar to `.gitignore` syntax
+
+## When to Use
+
+- ✅ Teams using Cursor IDE for AI-assisted development
+- ✅ Large codebases with many generated/vendored files
+- ✅ Projects with sensitive data that shouldn't be in AI context
+- ✅ Monorepos where AI should focus on specific areas
+
+## When NOT to Use
+
+- ❌ Teams not using Cursor IDE
+- ❌ Small projects where full context is beneficial
+
+## Required Marker Files
+
+- None (optional for any Cursor user)
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| Project-specific context | When you want AI to focus on certain files |
+| Cursor settings | For user-level (not project-level) ignores |
+
+## Template
+
+```gitignore
+# =============================================================================
+# .cursorignore - <PROJECT_NAME>
+# =============================================================================
+# Exclude files from Cursor AI context to improve response quality
+
+# === Dependencies (Large, External) ===
+node_modules/
+vendor/
+.venv/
+venv/
+
+# === Build Output (Generated) ===
+dist/
+build/
+out/
+.next/
+.nuxt/
+target/
+
+# === Generated Code ===
+*.generated.*
+*.min.js
+*.min.css
+*.bundle.js
+coverage/
+
+# === Lock Files (Large, Not Helpful) ===
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Cargo.lock
+go.sum
+
+# === Caches ===
+.cache/
+.turbo/
+.parcel-cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+
+# === IDE/Editor ===
+.idea/
+.vscode/
+*.sublime-*
+
+# === Large Data Files ===
+*.csv
+*.json  # Be selective - you may want config .json files
+*.sql
+*.db
+*.sqlite
+
+# === Media Files ===
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+
+# === Documentation (Optional - may want AI to see) ===
+# docs/
+
+# === Test Fixtures (Large/Noisy) ===
+__fixtures__/
+fixtures/
+test/data/
+
+# === Terraform/IaC State ===
+**/.terraform/
+*.tfstate*
+
+# === Secrets (Should Also Be in .gitignore) ===
+.env*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# <PROJECT_SPECIFIC_IGNORES>
+```
+
+## Selective Unignore Pattern
+
+For governance frameworks or important docs that should remain visible to AI:
+
+```gitignore
+# Bulk ignore governance submodule
+.governance/
+
+# BUT unignore key entrypoints for AI context
+!.governance/manifest.json
+!.governance/ai/docs/quick-start.md
+!.governance/ai/core/inference-rules/
+```
+
+## Stack-Specific Additions
+
+### JavaScript/TypeScript
+```gitignore
+node_modules/
+dist/
+.next/
+.nuxt/
+*.d.ts
+storybook-static/
+```
+
+### Python
+```gitignore
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+```
+
+### Go
+```gitignore
+bin/
+vendor/
+go.sum
+```
+
+### Rust
+```gitignore
+target/
+Cargo.lock
+```
+
+### Terraform/IaC
+```gitignore
+**/.terraform/
+*.tfstate*
+*.tfplan
+```
+
+## Context Size Considerations
+
+Cursor AI has context limits. Prioritize ignoring:
+
+1. **Large files** (lock files, data files) - Consume context without value
+2. **Binary files** (images, fonts) - Can't be meaningfully analyzed
+3. **Generated code** (dist, build) - Derived from source
+4. **Dependencies** (node_modules) - External, documented elsewhere
+5. **Caches** - Ephemeral, not relevant to development
+
+## Validation
+
+```bash
+# Check file count in repo
+find . -type f | wc -l
+
+# Check what would be ignored (approximate)
+# Compare file count with and without ignored dirs
+find . -type f -not -path './node_modules/*' -not -path './dist/*' | wc -l
+```
+
+## Integration with Other Ignores
+
+| Overlap with | Common Patterns |
+|--------------|-----------------|
+| `.gitignore` | Most patterns should match |
+| `.dockerignore` | Build outputs, dependencies |
+| `.eslintignore` | Generated code, dependencies |
+
+## Best Practices
+
+### Keep AI-Relevant Files Visible
+```gitignore
+# DON'T ignore these (AI needs them for context):
+# - Source code (src/, lib/)
+# - Config files (tsconfig.json, package.json)
+# - Documentation (README.md, docs/*.md) - unless very large
+# - Test files (AI can help write tests)
+```
+
+### Be Careful with Wildcards
+```gitignore
+# Too aggressive - ignores config files
+# *.json
+
+# Better - specific ignores
+package-lock.json
+*.generated.json
+data/*.json
+```
+
+### Project-Specific Tuning
+
+Large monorepo? Ignore other teams' code:
+```gitignore
+# Focus on my team's area
+packages/other-team/
+apps/legacy/
+```
+
+## Common Pitfalls
+
+❌ **Don't ignore:**
+- Source code (defeats the purpose of AI assistance)
+- Config files (AI needs to understand project setup)
+- README.md (context for the project)
+- Test files (AI can help write/fix tests)
+
+✅ **Do ignore:**
+- Dependencies (external code)
+- Generated files (derived from source)
+- Large data files (consume context)
+- Binaries (not meaningful to AI)
+- Secrets (security concern)

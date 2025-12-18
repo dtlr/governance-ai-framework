@@ -1,0 +1,292 @@
+# ESLint Configuration Template
+
+## Purpose
+
+JavaScript/TypeScript linting with ESLint 9+ flat configuration format. Catches bugs, enforces code style, and integrates with TypeScript for type-aware linting.
+
+## Official Documentation
+
+- [ESLint Configuration](https://eslint.org/docs/latest/use/configure/configuration-files) - Flat config guide
+- [typescript-eslint](https://typescript-eslint.io/) - TypeScript integration
+- [ESLint Rules](https://eslint.org/docs/latest/rules/) - All built-in rules
+
+## When to Use
+
+- ✅ Any JavaScript/TypeScript project
+- ✅ Projects with `package.json`
+- ✅ React, Vue, Node.js, etc.
+
+## When NOT to Use
+
+- ❌ Non-JavaScript projects (Python, Go, etc.)
+- ❌ Projects using Biome instead (use biome.json)
+- ❌ Legacy projects stuck on ESLint 8 (use .eslintrc format)
+
+## Required Marker Files
+
+- `package.json`
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| [Biome](https://biomejs.dev/) | Faster, all-in-one linting + formatting |
+| [oxlint](https://oxc-project.github.io/) | Very fast, Rust-based |
+| TSLint | Never (deprecated, use ESLint) |
+
+## Template
+
+### Basic JavaScript
+
+```javascript
+// eslint.config.js
+import js from "@eslint/js";
+import globals from "globals";
+
+export default [
+  // Global ignores
+  {
+    ignores: [
+      "dist/**",
+      "build/**",
+      "node_modules/**",
+      "coverage/**",
+      "*.min.js",
+    ],
+  },
+
+  // Base recommended rules
+  js.configs.recommended,
+
+  // Project configuration
+  {
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.node,
+        // ...globals.browser,  // Uncomment for browser code
+      },
+    },
+    rules: {
+      // Add project-specific rules
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "no-console": "warn",
+    },
+  },
+];
+```
+
+### TypeScript Project
+
+```javascript
+// eslint.config.js
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import globals from "globals";
+
+export default tseslint.config(
+  // Global ignores
+  {
+    ignores: [
+      "dist/**",
+      "build/**",
+      "node_modules/**",
+      "coverage/**",
+      "*.d.ts",
+    ],
+  },
+
+  // Base configs
+  js.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+
+  // TypeScript parser settings
+  {
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.node,
+      },
+      parserOptions: {
+        project: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+
+  // Custom rules
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/explicit-function-return-type": "off",
+    },
+  }
+);
+```
+
+### React Project
+
+```javascript
+// eslint.config.js
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
+import globals from "globals";
+
+export default tseslint.config(
+  {
+    ignores: ["dist/**", "build/**", "node_modules/**"],
+  },
+
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+
+  // React configuration
+  {
+    files: ["**/*.{jsx,tsx}"],
+    plugins: {
+      react,
+      "react-hooks": reactHooks,
+    },
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+    rules: {
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      "react/react-in-jsx-scope": "off", // Not needed in React 17+
+      "react/prop-types": "off", // Using TypeScript
+    },
+  }
+);
+```
+
+### With Prettier Integration
+
+```javascript
+// eslint.config.js
+import js from "@eslint/js";
+import prettier from "eslint-plugin-prettier/recommended";
+
+export default [
+  js.configs.recommended,
+  prettier, // Must be last to override other formatting rules
+  {
+    rules: {
+      // Your rules
+    },
+  },
+];
+```
+
+## Dependencies
+
+### Basic JavaScript
+```bash
+npm install -D eslint @eslint/js globals
+```
+
+### TypeScript
+```bash
+npm install -D eslint @eslint/js typescript-eslint globals
+```
+
+### React + TypeScript
+```bash
+npm install -D eslint @eslint/js typescript-eslint eslint-plugin-react eslint-plugin-react-hooks globals
+```
+
+### With Prettier
+```bash
+npm install -D eslint-plugin-prettier eslint-config-prettier
+```
+
+## npm Scripts
+
+```json
+{
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  }
+}
+```
+
+## Customization Points
+
+| Setting | Options | Notes |
+|---------|---------|-------|
+| `ecmaVersion` | `"latest"`, `2022`, etc. | JS version to support |
+| `sourceType` | `"module"`, `"commonjs"` | ESM vs CJS |
+| `globals` | `globals.node`, `globals.browser` | Environment globals |
+| `project` | `true`, `"./tsconfig.json"` | TS config for type-aware |
+
+## Common Rules
+
+```javascript
+rules: {
+  // Error prevention
+  "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+  "no-undef": "error",
+
+  // Code quality
+  "no-console": "warn",
+  "eqeqeq": ["error", "always"],
+  "curly": "error",
+
+  // TypeScript specific
+  "@typescript-eslint/no-explicit-any": "warn",
+  "@typescript-eslint/explicit-function-return-type": "off",
+  "@typescript-eslint/no-non-null-assertion": "warn",
+}
+```
+
+## Migration from ESLint 8
+
+If migrating from `.eslintrc.*`:
+
+```bash
+# Use the migration tool
+npx @eslint/migrate-config .eslintrc.json
+```
+
+Key differences:
+- `extends` → Import and spread configs
+- `env` → Use `globals` package
+- `plugins` → Import and assign to `plugins` object
+- `parserOptions` → Inside `languageOptions`
+
+## Validation
+
+```bash
+# Check config is valid
+npx eslint --print-config eslint.config.js
+
+# Run linting
+npx eslint .
+
+# Fix auto-fixable issues
+npx eslint . --fix
+
+# Lint specific files
+npx eslint src/**/*.ts
+```

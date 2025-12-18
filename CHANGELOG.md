@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2025-12-17
+
+### Added
+- **Cost Optimization Inference Rule** (`core/inference-rules/cost-optimization.md`)
+  - Mandatory tracking: Tokens, Cost, Context in every ledger entry
+  - Cost expectations by operation type (explore, create, refactor, debug, review, config, docs)
+  - Model selection rules (Haiku $0.25/$1.25, Sonnet $3/$15, Opus $15/$75)
+  - Efficiency patterns (progressive loading, batching, prompt specificity)
+  - Red flags and weekly review protocol
+
+- **Cost-Optimal Routing Inference Rule** (`core/inference-rules/cost-optimal-routing.md`)
+  - Tier 0: No model call - use deterministic tools first (ripgrep, glob, git, validators)
+  - Tier 1: Cheap model, tiny context (classification, extraction)
+  - Tier 2: Mid model for structured planning
+  - Tier 3: Expensive model only for hard reasoning
+  - Pointer packs instead of context stuffing (10x token reduction)
+  - Content-hash caching for repeated operations
+  - Confidence gates to avoid unnecessary escalation
+
+- **Wiring Guide** (`core/inference-rules/wiring-guide.md`)
+  - Step-by-step instructions for connecting lazy loading components
+  - How manifest.json → router.md → CLAUDE.md hierarchy connects
+  - Pointer patterns (forward, back, cross, governance references)
+  - Validation checklist and common wiring mistakes
+  - Complete example for IaC repository wiring
+
+- **EFFICIENCY.md Template** (`core/templates/golden-image/.ai/ledger/EFFICIENCY.md`)
+  - Rolling summary tables for cost tracking
+  - High-cost operations tracking
+  - Optimization recommendations
+  - Feedback loop protocol
+
+### Changed
+- Updated `core/rules/AGENT_CONTRACT.md`
+  - Added "When User's Approach Has Objective Issues" section
+  - Guidance on when to push back (objective reasons) vs ask (subjective preference)
+
+- Updated `core/inference-rules/file-lifecycle.md`
+  - Added Global Reusability Assessment (evaluate scripts/utilities for framework-wide templating)
+  - Added mandatory Ledger Entry Requirements (Tokens, Cost, Context)
+
+- Updated `core/templates/golden-image/.ai/ledger/LEDGER.md`
+  - Added Usage Metrics section (REQUIRED)
+  - Added Cost Reference table (model pricing)
+
+- Updated `core/inference-rules/README.md`
+  - Added all new rules to catalog
+  - Added rule summaries
+  - Added loading strategy sections
+
+---
+
+## [1.5.0] - 2025-12-17
+
+### Added
+- **Project Type Detection** (`core/inference-rules/project-type-detection.md`)
+  - Detect project types from marker files (package.json, go.mod, *.tf, etc.)
+  - Negative inference rules (when configs are NOT relevant)
+  - Polyglot/monorepo handling
+  - Output contract for config suggestions
+
+- **Project Configuration Templates** (`core/templates/golden-image/docs/_shared/templates/project-configs/`)
+  - **_common/**: EditorConfig, .gitignore patterns, Makefile, scripts patterns
+  - **javascript/**: ESLint 9+ flat config, Prettier, TypeScript, Turborepo, npm scripts
+  - **python/**: pyproject.toml, Ruff, requirements patterns
+  - **go/**: go.mod, golangci-lint
+  - **iac/**: Terraform provider constraints, TFLint
+  - **rust/**: Cargo.toml, rustfmt
+  - **docker/**: Dockerfile patterns, best practices
+  - **caching/**: Turbo cache, npm cache, build cache patterns
+  - **ignore-files/**: .gitignore, .dockerignore, .eslintignore, .prettierignore, .cursorignore
+
+### Changed
+- Updated `core/inference-rules/README.md` - Added project-type-detection rule
+- Updated `core/inference-rules/file-lifecycle.md` - Added global reusability assessment + **mandatory usage metrics**
+- Updated `core/README.md` - Added new inference rules to table
+- Updated `golden-image/CLAUDE.md` - Added config templates section
+- Updated `golden-image/docs/_shared/router.md` - Added config routing trigger
+- Updated `golden-image/.ai/ledger/LEDGER.md` - **Added mandatory Tokens/Cost/Context fields**
+
+---
+
 ## [1.4.0] - 2025-12-17
 
 ### Added
@@ -283,6 +365,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.6.0 | 2025-12-17 | Cost optimization, routing tiers, wiring guide, EFFICIENCY.md |
+| 1.5.0 | 2025-12-17 | Project type detection + config templates |
 | 1.4.0 | 2025-12-17 | Claude Cookbook patterns pointer guide |
 | 1.3.0 | 2025-12-17 | Inference rules index + routing/reference updates |
 | 1.2.0 | 2025-12-17 | AI submodule management guide |

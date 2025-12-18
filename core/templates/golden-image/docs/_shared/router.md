@@ -39,6 +39,21 @@ It is required because the governance submodule can only reference paths **relat
   - Load `.ai/inference/file-lifecycle/INFERENCE.md`
   - Load `.ai/inference/repo-router/INFERENCE.md`
 
+- If asked about **project config / tooling setup / eslint / prettier / tsconfig / Makefile**:
+  - Load: `.governance/ai/core/inference-rules/project-type-detection.md`
+  - Load relevant templates from: `docs/_shared/templates/project-configs/`
+  - Scan for marker files before suggesting configs
+
+- If asked about **cost / efficiency / token usage / model selection**:
+  - Load: `.governance/ai/core/inference-rules/cost-optimization.md`
+  - Load: `.governance/ai/core/inference-rules/cost-optimal-routing.md`
+  - Check: `.ai/ledger/EFFICIENCY.md` for tracking data
+
+- If asked about **wiring / setup / lazy loading / how things connect**:
+  - Load: `.governance/ai/core/inference-rules/wiring-guide.md`
+  - Load: `.governance/ai/core/inference-rules/lazy-loading.md`
+  - Load: `.governance/ai/core/inference-rules/three-tier-system.md`
+
 - If asked about **<YOUR DOMAIN AREA>**:
   - Load: <PATHS HERE> (example: `src/`, `infra/`, `docs/architecture/`)
 

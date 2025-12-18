@@ -1,0 +1,307 @@
+# golangci-lint Configuration Template
+
+## Purpose
+
+Comprehensive Go linting using golangci-lint - a fast linter aggregator that runs many linters in parallel.
+
+## Official Documentation
+
+- [golangci-lint](https://golangci-lint.run/) - Main documentation
+- [Linters](https://golangci-lint.run/usage/linters/) - All available linters
+- [Configuration](https://golangci-lint.run/usage/configuration/) - Config reference
+
+## When to Use
+
+- ✅ Any Go project
+- ✅ CI/CD pipelines for Go
+- ✅ Pre-commit hooks
+
+## When NOT to Use
+
+- ❌ Non-Go projects
+- ❌ When `go vet` alone is sufficient (small scripts)
+
+## Required Marker Files
+
+- `go.mod`
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| `go vet` only | Very simple projects, built-in |
+| `staticcheck` | Single tool, lighter weight |
+| `revive` | Drop-in golint replacement |
+
+## Template
+
+### Standard Configuration
+
+```yaml
+# .golangci.yml
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+
+linters:
+  enable:
+    - errcheck       # Check error returns
+    - gosimple       # Simplify code
+    - govet          # Examine Go source code
+    - ineffassign    # Detect ineffectual assignments
+    - staticcheck    # Comprehensive static analysis
+    - unused         # Check for unused code
+    - gofmt          # Check formatting
+    - goimports      # Check imports
+    - misspell       # Check spelling
+    - bodyclose      # Check HTTP body is closed
+    - noctx          # Check context in HTTP requests
+    - gosec          # Security checks
+    - prealloc       # Suggest preallocations
+    - unconvert      # Remove unnecessary conversions
+    - unparam        # Find unused function parameters
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+
+  goimports:
+    local-prefixes: github.com/<ORG>/<REPO>
+
+  gosec:
+    severity: medium
+    confidence: medium
+
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - bodyclose
+
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+
+  # Maximum count of issues with the same text
+  max-same-issues: 3
+```
+
+### Strict Configuration
+
+For maximum strictness:
+
+```yaml
+# .golangci.yml (strict)
+run:
+  timeout: 10m
+  tests: true
+
+linters:
+  enable-all: true
+  disable:
+    # These are too noisy or deprecated
+    - exhaustruct     # Require all struct fields
+    - depguard        # Needs manual config
+    - gochecknoglobals  # Too strict
+    - gochecknoinits    # Too strict
+    - wsl             # Whitespace linter - too opinionated
+    - nlreturn        # Too opinionated
+    - gomnd           # Magic numbers - often false positives
+    - varnamelen      # Variable name length - too strict
+    - ireturn         # Interface returns - often valid
+    - nonamedreturns  # Named returns are sometimes clearer
+
+linters-settings:
+  cyclop:
+    max-complexity: 15
+
+  funlen:
+    lines: 100
+    statements: 50
+
+  gocognit:
+    min-complexity: 20
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+
+  lll:
+    line-length: 120
+
+  nestif:
+    min-complexity: 4
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - dupl
+        - gosec
+```
+
+### Minimal Configuration
+
+For quick setup:
+
+```yaml
+# .golangci.yml (minimal)
+run:
+  timeout: 3m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gofmt
+```
+
+## Key Linters Explained
+
+| Linter | Purpose | Why Enable |
+|--------|---------|------------|
+| `errcheck` | Check errors are handled | Prevents silent failures |
+| `govet` | Official Go analyzer | Catches common mistakes |
+| `staticcheck` | Comprehensive analysis | High-quality checks |
+| `gosec` | Security issues | Security baseline |
+| `ineffassign` | Unused assignments | Code quality |
+| `misspell` | Typos | Polish |
+
+## Commands
+
+```bash
+# Run all enabled linters
+golangci-lint run
+
+# Run specific linters
+golangci-lint run --enable=errcheck,govet
+
+# Run with auto-fix (where supported)
+golangci-lint run --fix
+
+# Show all available linters
+golangci-lint linters
+
+# Verbose output
+golangci-lint run -v
+
+# Generate default config
+golangci-lint config
+```
+
+## Installation
+
+```bash
+# Go install
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# macOS
+brew install golangci-lint
+
+# Linux
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+```
+
+## Editor Integration
+
+### VS Code
+
+```json
+// .vscode/settings.json
+{
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": [
+    "--fast"
+  ]
+}
+```
+
+### GoLand
+
+Settings → Go → Linters → Enable golangci-lint
+
+## Pre-commit Hook
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.59.0
+    hooks:
+      - id: golangci-lint
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+```
+
+## Makefile Integration
+
+```makefile
+.PHONY: lint lint-fix
+
+lint:
+	golangci-lint run
+
+lint-fix:
+	golangci-lint run --fix
+```
+
+## Inline Directives
+
+```go
+// Disable linter for line
+x := doSomething() //nolint:errcheck
+
+// Disable linter for function
+//nolint:funlen
+func bigFunction() {
+    // ...
+}
+
+// Disable with reason
+x := y //nolint:errcheck // acceptable to ignore here because...
+```
+
+## Customization Points
+
+| Setting | Description |
+|---------|-------------|
+| `<ORG>/<REPO>` | Your module path for import grouping |
+| `timeout` | Increase for large projects |
+| Enabled linters | Adjust based on project needs |
+| `exclude-rules` | Add project-specific exclusions |

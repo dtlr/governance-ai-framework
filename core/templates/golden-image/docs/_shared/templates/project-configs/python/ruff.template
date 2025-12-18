@@ -1,0 +1,303 @@
+# Ruff Configuration Template
+
+## Purpose
+
+All-in-one Python linter and formatter. Replaces Flake8, Black, isort, and many other tools with a single, extremely fast tool written in Rust.
+
+## Official Documentation
+
+- [Ruff Documentation](https://docs.astral.sh/ruff/) - Complete reference
+- [Rule Selection](https://docs.astral.sh/ruff/rules/) - All available rules
+- [Configuration](https://docs.astral.sh/ruff/configuration/) - Config options
+
+## When to Use
+
+- ✅ Any Python project
+- ✅ Projects wanting fast linting (10-100x faster than alternatives)
+- ✅ Teams wanting single tool for lint + format
+
+## When NOT to Use
+
+- ❌ Non-Python projects
+- ❌ Teams committed to existing Black/Flake8 setup (migration cost)
+
+## Required Marker Files
+
+- `pyproject.toml` or Python files
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| Black + Flake8 + isort | Existing projects, team preference |
+| pylint | More rules (but much slower) |
+| autopep8 | Legacy codebases |
+
+## Template
+
+### In pyproject.toml (Recommended)
+
+```toml
+# pyproject.toml
+[tool.ruff]
+# Target Python version
+target-version = "py311"
+
+# Line length (Black default)
+line-length = 88
+
+# Files to exclude
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+# Rule selection
+select = [
+    "E",      # pycodestyle errors
+    "F",      # Pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+    "C4",     # flake8-comprehensions
+]
+
+# Rules to ignore
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+]
+
+# Per-file ignores
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",   # Allow assert in tests
+]
+"__init__.py" = [
+    "F401",   # Allow unused imports in __init__
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["<YOUR_PACKAGE>"]
+
+[tool.ruff.format]
+# Use double quotes (Black default)
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+```
+
+### Standalone ruff.toml
+
+```toml
+# ruff.toml
+target-version = "py311"
+line-length = 88
+
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = []
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[lint.isort]
+known-first-party = ["<YOUR_PACKAGE>"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+```
+
+### Strict Configuration
+
+For maximum strictness:
+
+```toml
+[tool.ruff.lint]
+select = [
+    "ALL",    # All rules
+]
+
+ignore = [
+    "D",      # Docstrings (if not required)
+    "ANN",    # Type annotations (if using pyright)
+    "COM812", # Trailing comma (conflicts with formatter)
+    "ISC001", # Single line concat (conflicts with formatter)
+]
+```
+
+### Library Configuration (with docstrings)
+
+```toml
+[tool.ruff.lint]
+select = [
+    "E", "F", "I", "UP", "B", "SIM",
+    "D",      # pydocstyle
+    "ANN",    # flake8-annotations
+]
+
+ignore = [
+    "D100",   # Missing module docstring
+    "D104",   # Missing public package docstring
+    "ANN101", # Missing self type annotation
+    "ANN102", # Missing cls type annotation
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # or "numpy"
+```
+
+## Common Rule Prefixes
+
+| Prefix | Source | Purpose |
+|--------|--------|---------|
+| `E` | pycodestyle | Style errors |
+| `W` | pycodestyle | Style warnings |
+| `F` | Pyflakes | Logic errors |
+| `I` | isort | Import sorting |
+| `UP` | pyupgrade | Python upgrades |
+| `B` | flake8-bugbear | Bug detection |
+| `SIM` | flake8-simplify | Simplification |
+| `C4` | flake8-comprehensions | Comprehensions |
+| `D` | pydocstyle | Docstrings |
+| `S` | flake8-bandit | Security |
+| `ANN` | flake8-annotations | Type hints |
+
+## Commands
+
+```bash
+# Check for lint issues
+ruff check .
+
+# Check and fix auto-fixable issues
+ruff check . --fix
+
+# Format code
+ruff format .
+
+# Check if code is formatted
+ruff format . --check
+
+# Show rules that would be selected
+ruff check . --show-settings | grep "^select"
+
+# Explain a specific rule
+ruff rule E501
+```
+
+## Dependencies
+
+```bash
+# Using pip
+pip install ruff
+
+# Using uv
+uv pip install ruff
+
+# Add to pyproject.toml dev dependencies
+# ruff>=0.5
+```
+
+## Editor Integration
+
+### VS Code
+
+Install "Ruff" extension, then:
+
+```json
+// .vscode/settings.json
+{
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  }
+}
+```
+
+### Pre-commit
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+```
+
+## Migration from Black/Flake8
+
+Ruff aims for Black compatibility. To migrate:
+
+1. Install Ruff alongside existing tools
+2. Run `ruff check --diff .` to see what would change
+3. Gradually enable rule sets
+4. Remove Black/Flake8/isort once confident
+
+## Inline Ignores
+
+```python
+# Ignore specific rule for line
+x = 1  # noqa: E501
+
+# Ignore multiple rules
+x = 1  # noqa: E501, F841
+
+# Ignore for entire file (top of file)
+# ruff: noqa: E501
+
+# Type: ignore (for type checkers, not Ruff)
+x = something()  # type: ignore
+```
+
+## Makefile Integration
+
+```makefile
+.PHONY: lint format check
+
+lint:
+	ruff check .
+
+lint-fix:
+	ruff check . --fix
+
+format:
+	ruff format .
+
+format-check:
+	ruff format . --check
+
+check: lint-fix format
+```
+
+## Customization Points
+
+| Setting | Options | Notes |
+|---------|---------|-------|
+| `target-version` | `"py38"` - `"py312"` | Python version for upgrades |
+| `line-length` | Number (default: 88) | Max line length |
+| `select` | Rule prefixes/codes | Rules to enable |
+| `ignore` | Rule codes | Rules to skip |
+| `quote-style` | `"double"`, `"single"` | String quote style |

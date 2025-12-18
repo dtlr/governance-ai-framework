@@ -1,0 +1,326 @@
+# TypeScript Configuration Template
+
+## Purpose
+
+Configure the TypeScript compiler - target JavaScript version, module system, strictness, and path mappings. Essential for any TypeScript project.
+
+## Official Documentation
+
+- [TSConfig Reference](https://www.typescriptlang.org/tsconfig) - All compiler options
+- [Project References](https://www.typescriptlang.org/docs/handbook/project-references.html) - Monorepo setup
+- [Module Resolution](https://www.typescriptlang.org/docs/handbook/modules/theory.html) - How TS finds modules
+
+## When to Use
+
+- ✅ Any TypeScript project
+- ✅ JavaScript projects wanting type checking (with `checkJs`)
+- ✅ Projects with `.ts`, `.tsx`, `.mts`, `.cts` files
+
+## When NOT to Use
+
+- ❌ Pure JavaScript projects (unless you want JSDoc checking)
+- ❌ Non-Node/browser JavaScript runtimes with incompatible type systems
+
+## Required Marker Files
+
+- `package.json`
+- `*.ts` or `*.tsx` files
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| JSDoc types | Type checking without TypeScript compilation |
+| No types | Very small scripts, prototypes |
+
+## Template
+
+### Node.js Application
+
+```json
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    // Output
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+
+    // Strictness
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    // Interop
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Emit
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    // Skip
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+### React/Next.js Application
+
+```json
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    // Output
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+
+    // Strictness
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+
+    // Interop
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+
+    // No emit (bundler handles it)
+    "noEmit": true,
+
+    // Skip
+    "skipLibCheck": true,
+
+    // Path aliases
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "next-env.d.ts"],
+  "exclude": ["node_modules"]
+}
+```
+
+### Library (npm Package)
+
+```json
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    // Output - support multiple targets
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "outDir": "dist",
+    "rootDir": "src",
+
+    // Strictness
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    // Interop
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Emit declarations for consumers
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    // Skip
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
+```
+
+### Monorepo Base Config
+
+```json
+// tsconfig.base.json (root)
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true
+  }
+}
+```
+
+```json
+// packages/shared/tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+```json
+// apps/web/tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "preserve",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"]
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../../packages/shared" }
+  ]
+}
+```
+
+## Key Options Explained
+
+### Module System
+
+| Setting | Use For |
+|---------|---------|
+| `"module": "NodeNext"` | Node.js with ESM |
+| `"module": "CommonJS"` | Node.js with CJS |
+| `"module": "ESNext"` | Bundlers (Vite, webpack) |
+
+| Resolution | Use For |
+|------------|---------|
+| `"moduleResolution": "NodeNext"` | Node.js |
+| `"moduleResolution": "Bundler"` | Vite, webpack, etc. |
+
+### Strictness Levels
+
+```json
+// Minimum recommended
+{
+  "strict": true
+}
+
+// Maximum safety
+{
+  "strict": true,
+  "noUncheckedIndexedAccess": true,
+  "noImplicitOverride": true,
+  "exactOptionalPropertyTypes": true
+}
+```
+
+### Path Aliases
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@utils/*": ["./src/utils/*"]
+    }
+  }
+}
+```
+
+Note: Bundlers need separate alias config (Vite, webpack, etc.)
+
+## Dependencies
+
+```bash
+# TypeScript only
+npm install -D typescript
+
+# With ts-node for development
+npm install -D typescript ts-node @types/node
+
+# With tsx (faster alternative to ts-node)
+npm install -D typescript tsx @types/node
+```
+
+## npm Scripts
+
+```json
+{
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx watch src/index.ts"
+  }
+}
+```
+
+## package.json Exports (for libraries)
+
+```json
+{
+  "name": "my-library",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"]
+}
+```
+
+## Validation
+
+```bash
+# Type check without emitting
+npx tsc --noEmit
+
+# Build
+npx tsc
+
+# Show resolved config
+npx tsc --showConfig
+
+# List files that would be compiled
+npx tsc --listFiles
+```
+
+## Common Issues
+
+### "Cannot find module"
+- Check `moduleResolution` matches your runtime
+- Ensure `@types/*` packages are installed
+- Verify path aliases are configured in bundler too
+
+### "Duplicate identifier"
+- Check for duplicate `@types` versions
+- Use `skipLibCheck: true`
+
+### Slow compilation
+- Use `skipLibCheck: true`
+- Use project references for monorepos
+- Consider `incremental: true`

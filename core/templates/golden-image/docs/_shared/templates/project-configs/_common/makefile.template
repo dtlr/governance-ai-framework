@@ -1,0 +1,248 @@
+# Makefile Template
+
+## Purpose
+
+Universal task runner for any project. Provides consistent commands (`make build`, `make test`, `make lint`) regardless of underlying tooling.
+
+## Official Documentation
+
+- [GNU Make Manual](https://www.gnu.org/software/make/manual/make.html) - Complete reference
+- [Make Tutorial](https://makefiletutorial.com/) - Beginner-friendly guide
+
+## When to Use
+
+- ✅ Any project needing consistent task automation
+- ✅ Projects with multiple tools/commands to orchestrate
+- ✅ Cross-platform teams (Make is available everywhere)
+- ✅ CI/CD pipelines (standard interface)
+
+## When NOT to Use
+
+- ❌ JavaScript projects using npm scripts exclusively (unless wrapping npm)
+- ❌ Projects where the team strongly prefers another task runner (Just, Task)
+- ❌ Windows-only teams without Make installed
+
+## Required Marker Files
+
+- None (can be added to any project)
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| npm scripts | JS projects, team prefers package.json |
+| Just | Simpler syntax, better cross-platform |
+| Task (go-task) | YAML-based, better cross-platform |
+| Invoke (Python) | Python-native task runner |
+
+**Recommendation:** Use Makefile for polyglot repos; use language-native runners for single-stack projects.
+
+## Integration Notes
+
+- Makefiles use **tabs** for indentation (not spaces)
+- `.PHONY` declares targets that aren't files
+- Can wrap language-specific tools (npm, go, cargo, etc.)
+- First target is the default (usually `help` or `all`)
+
+## Template
+
+```makefile
+# Makefile - Project automation
+# Run `make help` to see available commands
+
+.PHONY: help install build test lint format clean
+
+# Default target
+help:
+	@echo "Available commands:"
+	@echo "  make install  - Install dependencies"
+	@echo "  make build    - Build the project"
+	@echo "  make test     - Run tests"
+	@echo "  make lint     - Run linters"
+	@echo "  make format   - Format code"
+	@echo "  make clean    - Clean build artifacts"
+	@echo ""
+	@echo "Development:"
+	@echo "  make dev      - Start development mode"
+	@echo "  make check    - Run all checks (lint + test)"
+
+# === Dependencies ===
+
+install:
+	<INSTALL_COMMAND>
+
+# === Build ===
+
+build:
+	<BUILD_COMMAND>
+
+# === Testing ===
+
+test:
+	<TEST_COMMAND>
+
+# === Code Quality ===
+
+lint:
+	<LINT_COMMAND>
+
+format:
+	<FORMAT_COMMAND>
+
+check: lint test
+
+# === Development ===
+
+dev:
+	<DEV_COMMAND>
+
+# === Cleanup ===
+
+clean:
+	<CLEAN_COMMAND>
+```
+
+## Customization Points
+
+Replace `<PLACEHOLDER>` based on detected stack:
+
+### JavaScript/TypeScript
+```makefile
+install:
+	npm install
+
+build:
+	npm run build
+
+test:
+	npm test
+
+lint:
+	npm run lint
+
+format:
+	npm run format
+
+dev:
+	npm run dev
+
+clean:
+	rm -rf node_modules dist .next .turbo
+```
+
+### Python
+```makefile
+install:
+	pip install -e ".[dev]"
+
+build:
+	python -m build
+
+test:
+	pytest
+
+lint:
+	ruff check .
+
+format:
+	ruff format .
+
+clean:
+	rm -rf __pycache__ .pytest_cache dist *.egg-info
+```
+
+### Go
+```makefile
+install:
+	go mod download
+
+build:
+	go build -o bin/ ./...
+
+test:
+	go test ./...
+
+lint:
+	golangci-lint run
+
+format:
+	gofmt -s -w .
+
+clean:
+	rm -rf bin/
+```
+
+### Terraform/IaC
+```makefile
+install:
+	tofu init
+
+build:
+	tofu plan -out=tofu.plan
+
+test:
+	tofu validate
+
+lint:
+	tflint
+
+format:
+	tofu fmt
+
+clean:
+	rm -rf .terraform tofu.plan
+```
+
+### Rust
+```makefile
+install:
+	cargo fetch
+
+build:
+	cargo build --release
+
+test:
+	cargo test
+
+lint:
+	cargo clippy
+
+format:
+	cargo fmt
+
+clean:
+	cargo clean
+```
+
+## Advanced Patterns
+
+### Variables
+```makefile
+PROJECT := <PROJECT_NAME>
+VERSION := $(shell git describe --tags --always)
+
+build:
+	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(PROJECT)
+```
+
+### Conditional Targets
+```makefile
+# Only run if file changed
+dist/bundle.js: src/*.js
+	npm run build
+```
+
+### Docker Integration
+```makefile
+docker-build:
+	docker build -t $(PROJECT):$(VERSION) .
+
+docker-run:
+	docker run --rm -it $(PROJECT):$(VERSION)
+```
+
+### CI Helper
+```makefile
+ci: install lint test build
+	@echo "CI checks passed"
+```

@@ -1,0 +1,318 @@
+# pyproject.toml Template
+
+## Purpose
+
+Central configuration for Python projects - metadata, dependencies, build system, and tool configuration. The modern standard for Python project configuration.
+
+## Official Documentation
+
+- [PEP 621](https://peps.python.org/pep-0621/) - Project metadata standard
+- [PEP 517/518](https://peps.python.org/pep-0517/) - Build system interface
+- [Setuptools pyproject.toml](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html) - Build backend docs
+
+## When to Use
+
+- ✅ Any Python project (application or library)
+- ✅ Projects needing dependency management
+- ✅ Pip-installable packages
+
+## When NOT to Use
+
+- ❌ Non-Python projects
+- ❌ Single-file scripts (just use shebang + requirements comment)
+
+## Required Marker Files
+
+- This IS the marker file for Python projects
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| `setup.py` | Legacy projects, complex builds (avoid for new) |
+| `setup.cfg` | Legacy alternative (avoid for new) |
+| `requirements.txt` alone | Very simple scripts |
+
+## Template
+
+### Application
+
+```toml
+# pyproject.toml - Application
+[project]
+name = "<PROJECT_NAME>"
+version = "0.1.0"
+description = "<PROJECT_DESCRIPTION>"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "<AUTHOR_NAME>", email = "<AUTHOR_EMAIL>" }
+]
+dependencies = [
+    # Add runtime dependencies
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.5",
+    "pyright>=1.1",
+]
+
+[project.scripts]
+# CLI entry points
+# myapp = "myapp.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# === Tool Configuration ===
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+```
+
+### Library (pip-installable package)
+
+```toml
+# pyproject.toml - Library
+[project]
+name = "<PACKAGE_NAME>"
+version = "0.1.0"
+description = "<PACKAGE_DESCRIPTION>"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "<AUTHOR_NAME>", email = "<AUTHOR_EMAIL>" }
+]
+keywords = ["<KEYWORD1>", "<KEYWORD2>"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    # Runtime dependencies
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.5",
+    "pyright>=1.1",
+    "build>=1.0",
+    "twine>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/<ORG>/<REPO>"
+Documentation = "https://github.com/<ORG>/<REPO>#readme"
+Repository = "https://github.com/<ORG>/<REPO>"
+Issues = "https://github.com/<ORG>/<REPO>/issues"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+# === Tool Configuration ===
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "D"]
+ignore = ["D100", "D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+```
+
+### With uv (Modern Alternative)
+
+```toml
+# pyproject.toml - Using uv
+[project]
+name = "<PROJECT_NAME>"
+version = "0.1.0"
+description = "<PROJECT_DESCRIPTION>"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+# uv uses standard pyproject.toml
+# No build-system needed for pure applications
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+```
+
+## Key Sections Explained
+
+### [project]
+Core metadata following PEP 621:
+
+```toml
+[project]
+name = "mypackage"           # Package name (pip install mypackage)
+version = "1.0.0"            # Semantic version
+description = "Short desc"   # One-line description
+readme = "README.md"         # Long description file
+requires-python = ">=3.11"   # Python version constraint
+license = { text = "MIT" }   # License identifier
+authors = [...]              # Author list
+dependencies = [...]         # Runtime dependencies
+```
+
+### [project.optional-dependencies]
+Extra install groups:
+
+```toml
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]     # pip install .[dev]
+docs = ["sphinx", "furo"]    # pip install .[docs]
+all = ["mypackage[dev,docs]"]  # pip install .[all]
+```
+
+### [project.scripts]
+CLI entry points:
+
+```toml
+[project.scripts]
+mycommand = "mypackage.cli:main"
+# Creates `mycommand` executable that calls mypackage.cli.main()
+```
+
+### [build-system]
+Build backend configuration:
+
+```toml
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Alternative backends:
+# - flit_core.buildapi (flit)
+# - hatchling.build (hatch)
+# - poetry.core.masonry.api (poetry)
+```
+
+## Dependencies
+
+### Development setup
+
+```bash
+# Using uv (recommended)
+uv venv
+source .venv/bin/activate
+uv pip install -e ".[dev]"
+
+# Using pip
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+### Building package
+
+```bash
+# Build distribution
+python -m build
+
+# Upload to PyPI
+twine upload dist/*
+```
+
+## Makefile Integration
+
+```makefile
+.PHONY: install dev test lint format
+
+install:
+	uv pip install -e .
+
+dev:
+	uv pip install -e ".[dev]"
+
+test:
+	pytest
+
+lint:
+	ruff check .
+
+format:
+	ruff format .
+```
+
+## Customization Points
+
+| Placeholder | Description |
+|-------------|-------------|
+| `<PROJECT_NAME>` | Package/project name |
+| `<PROJECT_DESCRIPTION>` | One-line description |
+| `<AUTHOR_NAME>` | Author name |
+| `<AUTHOR_EMAIL>` | Author email |
+| `<ORG>/<REPO>` | GitHub org/repo path |
+
+## Validation
+
+```bash
+# Validate pyproject.toml syntax
+python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))"
+
+# Check package builds correctly
+python -m build --no-isolation
+
+# Verify metadata
+pip show -f <package-name>
+```

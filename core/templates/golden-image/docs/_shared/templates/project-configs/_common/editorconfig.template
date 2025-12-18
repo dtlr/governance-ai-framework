@@ -1,0 +1,121 @@
+# EditorConfig Template
+
+## Purpose
+
+Cross-editor configuration for consistent formatting (indentation, line endings, charset) across all contributors regardless of IDE.
+
+## Official Documentation
+
+- [EditorConfig Specification](https://editorconfig.org/) - Format reference
+- [Properties](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties) - All supported properties
+
+## When to Use
+
+- ✅ Any project with text files (code, docs, configs)
+- ✅ Teams with multiple editors (VS Code, Vim, JetBrains, etc.)
+- ✅ Cross-platform development (Windows/Mac/Linux line endings)
+- ✅ Open source projects (contributor consistency)
+
+## When NOT to Use
+
+- ❌ Single-developer projects where IDE settings suffice
+- ❌ Projects where formatting is intentionally inconsistent
+- ❌ Binary-only repositories
+
+## Required Marker Files
+
+- None (universally applicable to any text-based project)
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| IDE settings only | Single developer, single IDE |
+| Prettier/formatters | Language-specific formatting (use BOTH - editorconfig for basics) |
+
+**Recommendation:** Use editorconfig for basics + language-specific formatters for advanced rules.
+
+## Integration Notes
+
+- EditorConfig sets **baseline** formatting (indent, line endings)
+- Language formatters (Prettier, Black, gofmt) override for language-specific rules
+- Most IDEs have native support; some need plugins
+- `.editorconfig` is read from file location upward to `root = true`
+
+## Template
+
+```ini
+# EditorConfig - https://editorconfig.org
+root = true
+
+# Default for all files
+[*]
+indent_style = <INDENT_STYLE: space>
+indent_size = <INDENT_SIZE: 2>
+end_of_line = <LINE_ENDING: lf>
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Markdown - preserve trailing whitespace (line breaks)
+[*.md]
+trim_trailing_whitespace = false
+
+# Makefile - MUST use tabs
+[Makefile]
+indent_style = tab
+
+# Go - uses tabs by convention
+[*.go]
+indent_style = tab
+
+# Python - PEP 8 recommends 4 spaces
+[*.py]
+indent_size = 4
+
+# YAML - typically 2 spaces
+[*.{yml,yaml}]
+indent_size = 2
+
+# JSON - typically 2 spaces
+[*.json]
+indent_size = 2
+
+# Shell scripts
+[*.sh]
+indent_size = 2
+shell_variant = bash
+```
+
+## Customization Points
+
+| Placeholder | Options | Notes |
+|-------------|---------|-------|
+| `<INDENT_STYLE>` | `space`, `tab` | Most projects use spaces except Go/Make |
+| `<INDENT_SIZE>` | `2`, `4` | 2 for JS/YAML, 4 for Python |
+| `<LINE_ENDING>` | `lf`, `crlf` | Use `lf` for cross-platform |
+
+## Stack-Specific Overrides
+
+Add these sections based on detected project type:
+
+**JavaScript/TypeScript:**
+```ini
+[*.{js,jsx,ts,tsx}]
+indent_size = 2
+```
+
+**Terraform:**
+```ini
+[*.tf]
+indent_size = 2
+
+[*.tfvars]
+indent_size = 2
+```
+
+**Rust:**
+```ini
+[*.rs]
+indent_size = 4
+```

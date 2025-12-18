@@ -1,0 +1,238 @@
+# .prettierignore Template
+
+## Purpose
+
+Exclude files from Prettier formatting. Prevents formatting of generated code, dependencies, and files where formatting would be destructive.
+
+## Official Documentation
+
+- [Prettier - Ignoring Code](https://prettier.io/docs/en/ignore) - Official guide
+- [CLI File Patterns](https://prettier.io/docs/en/cli#file-patterns) - Pattern matching
+
+## When to Use
+
+- ✅ Projects using Prettier for code formatting
+- ✅ Monorepos with mixed content types
+- ✅ Projects with generated code
+
+## When NOT to Use
+
+- ❌ Projects not using Prettier
+- ❌ Single-file projects (use inline comments instead)
+
+## Required Marker Files
+
+- `package.json` with Prettier dependency
+- `.prettierrc*` or `prettier.config.js` (optional but common)
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| `<!-- prettier-ignore -->` | Single block in markdown/HTML |
+| `// prettier-ignore` | Single statement in code |
+| `"prettier": {"ignore": [...]}` | package.json inline config |
+
+## Template
+
+```gitignore
+# =============================================================================
+# .prettierignore - <PROJECT_NAME>
+# =============================================================================
+
+# === Build Output ===
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# === Dependencies ===
+node_modules/
+vendor/
+
+# === Generated Files ===
+*.min.js
+*.min.css
+*.bundle.js
+*.generated.*
+
+# === Lock Files ===
+# These have specific formatting
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# === Type Declarations ===
+*.d.ts
+
+# === Coverage & Reports ===
+coverage/
+.nyc_output/
+
+# === Markdown with Intentional Formatting ===
+# Uncomment if you have markdown that shouldn't be touched
+# CHANGELOG.md
+
+# === Auto-Generated Docs ===
+docs/api/
+docs/generated/
+
+# === Third-Party / Vendored ===
+public/vendor/
+static/lib/
+
+# <PROJECT_SPECIFIC_IGNORES>
+```
+
+## Common Additions
+
+### Monorepo Patterns
+```gitignore
+# Ignore build outputs in all packages
+packages/*/dist/
+packages/*/build/
+apps/*/build/
+```
+
+### Framework-Specific
+
+**Next.js:**
+```gitignore
+.next/
+out/
+```
+
+**Nuxt:**
+```gitignore
+.nuxt/
+.output/
+```
+
+### Markdown Exceptions
+```gitignore
+# Ignore auto-generated markdown
+CHANGELOG.md
+docs/api/**/*.md
+```
+
+### Config Files (Optional)
+```gitignore
+# Some teams don't format config files
+*.config.js
+*.config.mjs
+tsconfig.json
+```
+
+## Inline Ignore Comments
+
+For single exceptions within formatted code:
+
+### JavaScript/TypeScript
+```javascript
+// prettier-ignore
+const matrix = [
+  1, 0, 0,
+  0, 1, 0,
+  0, 0, 1,
+];
+```
+
+### HTML
+```html
+<!-- prettier-ignore -->
+<pre>
+  Preformatted    text
+</pre>
+```
+
+### Markdown
+```markdown
+<!-- prettier-ignore -->
+| Column 1 | Column 2 |
+|----------|----------|
+| Special  | Format   |
+```
+
+### CSS
+```css
+/* prettier-ignore */
+.selector {
+  specific: formatting;
+}
+```
+
+### JSX
+```jsx
+{/* prettier-ignore */}
+<div className="keep    spaces">
+  Content
+</div>
+```
+
+## Ignore Ranges
+
+```javascript
+// prettier-ignore-start
+const a = 1;
+const b = 2;
+const c = 3;
+// prettier-ignore-end
+```
+
+## Validation Commands
+
+```bash
+# Check what files Prettier will format
+npx prettier --list-different .
+
+# Check specific file
+npx prettier --check path/to/file.js
+
+# See which files would be formatted
+npx prettier --write --list-different . 2>/dev/null
+
+# Debug ignore patterns
+npx prettier --debug-check path/to/file.js
+```
+
+## Syncing with .eslintignore
+
+Often you want the same files ignored by both tools:
+
+```bash
+# Common approach: start with eslintignore, add prettier-specific
+cat .eslintignore > .prettierignore
+echo "" >> .prettierignore
+echo "# Prettier-specific" >> .prettierignore
+echo "package-lock.json" >> .prettierignore
+```
+
+## Integration Notes
+
+- `.prettierignore` uses gitignore syntax
+- Patterns are relative to `.prettierignore` location
+- `node_modules/` is ignored by default
+- Files in `.gitignore` can optionally be ignored via `--ignore-unknown`
+- Consider VS Code settings to respect ignore on format-on-save
+
+### VS Code Settings
+```json
+{
+  "editor.formatOnSave": true,
+  "prettier.ignorePath": ".prettierignore"
+}
+```
+
+## Common Pitfalls
+
+❌ **Don't ignore:**
+- Source code that should be formatted
+- Config files (unless team agrees)
+
+✅ **Do ignore:**
+- Generated files (will be overwritten anyway)
+- Lock files (have specific format)
+- Minified files (destroys optimization)
+- Third-party vendor code (not your responsibility)

@@ -1,0 +1,221 @@
+# .eslintignore Template
+
+## Purpose
+
+Exclude files and directories from ESLint linting. Prevents linting of generated code, dependencies, and non-JavaScript files.
+
+## Official Documentation
+
+- [ESLint - Ignoring Code](https://eslint.org/docs/latest/use/configure/ignore) - Official guide
+- [Flat Config ignores](https://eslint.org/docs/latest/use/configure/configuration-files#ignoring-files) - ESLint 9+ approach
+
+## When to Use
+
+- ✅ JavaScript/TypeScript projects using ESLint
+- ✅ Projects with generated code that shouldn't be linted
+- ✅ Monorepos with mixed content
+
+## When NOT to Use
+
+- ❌ Non-JavaScript projects
+- ❌ Projects not using ESLint
+- ❌ ESLint 9+ flat config (use `ignores` in config instead)
+
+## Required Marker Files
+
+- `package.json` with ESLint dependency
+- `.eslintrc.*` or `eslint.config.js`
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| `ignores` in flat config | ESLint 9+ (recommended) |
+| `ignorePatterns` in config | ESLint 8.x config-based ignore |
+| `/* eslint-disable */` | Single file exceptions |
+
+## ESLint 9+ Note
+
+ESLint 9+ uses flat config and the `ignores` property:
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    ignores: [
+      "dist/",
+      "node_modules/",
+      "coverage/",
+      "*.config.js"
+    ]
+  },
+  // ... other config
+];
+```
+
+If using ESLint 9+, prefer this approach over `.eslintignore`.
+
+## Template (.eslintignore)
+
+```gitignore
+# =============================================================================
+# .eslintignore - <PROJECT_NAME>
+# =============================================================================
+
+# === Build Output ===
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# === Dependencies ===
+node_modules/
+
+# === Generated Files ===
+*.min.js
+*.bundle.js
+*.generated.*
+coverage/
+
+# === Config Files ===
+# Usually don't need linting
+*.config.js
+*.config.mjs
+*.config.cjs
+
+# === Type Declarations ===
+*.d.ts
+
+# === Vendor/Third-Party ===
+vendor/
+public/vendor/
+static/vendor/
+
+# === Test Fixtures ===
+# Files that intentionally have lint errors for testing
+__fixtures__/
+test/fixtures/
+
+# === Documentation Examples ===
+# Code examples that may not follow all rules
+docs/examples/
+
+# <PROJECT_SPECIFIC_IGNORES>
+```
+
+## Common Additions
+
+### Monorepo Patterns
+```gitignore
+# Ignore build outputs in all packages
+packages/*/dist/
+packages/*/build/
+
+# Ignore generated types
+packages/*/*.d.ts
+```
+
+### Framework-Specific
+
+**Next.js:**
+```gitignore
+.next/
+out/
+next-env.d.ts
+```
+
+**Nuxt:**
+```gitignore
+.nuxt/
+.output/
+```
+
+**Storybook:**
+```gitignore
+storybook-static/
+```
+
+**Vite:**
+```gitignore
+dist/
+```
+
+### Test Coverage
+```gitignore
+coverage/
+.nyc_output/
+```
+
+## ESLint Flat Config Equivalent
+
+If migrating to ESLint 9+ flat config:
+
+```javascript
+// eslint.config.js
+import js from "@eslint/js";
+
+export default [
+  {
+    // Global ignores (replaces .eslintignore)
+    ignores: [
+      // Build output
+      "dist/**",
+      "build/**",
+      ".next/**",
+
+      // Dependencies
+      "node_modules/**",
+
+      // Generated
+      "*.min.js",
+      "coverage/**",
+
+      // Config files (optional)
+      "*.config.js",
+
+      // Type declarations
+      "**/*.d.ts",
+    ]
+  },
+  js.configs.recommended,
+  // ... other config
+];
+```
+
+## Validation Commands
+
+```bash
+# Check what files ESLint will lint
+npx eslint --debug . 2>&1 | grep "Processing"
+
+# Lint specific file to test ignore
+npx eslint path/to/file.js
+
+# List files that would be linted
+npx eslint . --ext .js,.ts --format json | jq '.[].filePath'
+```
+
+## Inline Disable Comments
+
+For single-file exceptions within non-ignored code:
+
+```javascript
+/* eslint-disable */
+// Entire file ignored
+
+/* eslint-disable no-console */
+// Specific rule disabled for file
+
+// eslint-disable-next-line no-console
+console.log("This line only");
+```
+
+## Integration Notes
+
+- `.eslintignore` uses gitignore syntax
+- Patterns are relative to `.eslintignore` location
+- `node_modules/` is ignored by default (don't need to add)
+- Files in `.gitignore` are NOT automatically ignored by ESLint
+- Consider syncing patterns with `.prettierignore`

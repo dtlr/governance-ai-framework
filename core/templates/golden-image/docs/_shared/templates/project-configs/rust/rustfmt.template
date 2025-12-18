@@ -1,0 +1,295 @@
+# rustfmt Configuration Template
+
+## Purpose
+
+Configure Rust code formatting. While `rustfmt` defaults are excellent and widely adopted, some options allow team customization.
+
+## Official Documentation
+
+- [rustfmt Documentation](https://rust-lang.github.io/rustfmt/) - Main docs
+- [Configuration Options](https://rust-lang.github.io/rustfmt/?version=master&search=) - All options
+- [Rust Style Guide](https://doc.rust-lang.org/nightly/style-guide/) - Official style
+
+## When to Use
+
+- ✅ Teams wanting to customize formatting beyond defaults
+- ✅ Projects needing stable formatting across nightly features
+- ✅ Workspace-wide consistent formatting
+
+## When NOT to Use
+
+- ❌ Non-Rust projects
+- ❌ Projects happy with defaults (no config needed!)
+- ❌ Small projects (defaults are fine)
+
+## Required Marker Files
+
+- `Cargo.toml`
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| No config | Defaults are good for most projects |
+| Editor settings | Per-developer preferences (not recommended) |
+
+## Template
+
+### Standard Configuration
+
+```toml
+# rustfmt.toml
+edition = "2021"
+
+# Most commonly changed options
+max_width = 100
+tab_spaces = 4
+newline_style = "Unix"
+```
+
+### Comprehensive Configuration
+
+```toml
+# rustfmt.toml
+edition = "2021"
+
+# Line width
+max_width = 100
+# For comments
+comment_width = 80
+# Wrap long lines at this point
+wrap_comments = true
+
+# Indentation
+tab_spaces = 4
+hard_tabs = false
+
+# Newlines
+newline_style = "Unix"
+
+# Imports
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+reorder_modules = true
+
+# Function formatting
+fn_params_layout = "Tall"
+
+# Use field init shorthand where possible
+use_field_init_shorthand = true
+
+# Use try! macro instead of ? in some cases
+use_try_shorthand = true
+
+# Format strings in macros
+format_strings = false
+
+# Format code in doc comments
+format_code_in_doc_comments = true
+```
+
+### Minimal Configuration
+
+```toml
+# rustfmt.toml
+edition = "2021"
+max_width = 100
+```
+
+### Nightly Features (Unstable)
+
+Some options require nightly rustfmt:
+
+```toml
+# rustfmt.toml
+edition = "2021"
+
+# Requires nightly
+unstable_features = true
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+wrap_comments = true
+format_code_in_doc_comments = true
+```
+
+To use nightly rustfmt:
+```bash
+rustup run nightly cargo fmt
+```
+
+## Key Options Explained
+
+### max_width
+Maximum line width:
+```toml
+max_width = 100  # Default: 100
+```
+
+### imports_granularity
+How to merge imports:
+```toml
+imports_granularity = "Module"  # Group by module
+imports_granularity = "Crate"   # Group by crate (nightly)
+imports_granularity = "Item"    # One import per line
+```
+
+### group_imports
+Import grouping:
+```toml
+group_imports = "StdExternalCrate"  # std, external, crate
+```
+
+Result:
+```rust
+use std::collections::HashMap;
+
+use serde::Serialize;
+
+use crate::config::Config;
+```
+
+### fn_params_layout
+Function parameter layout:
+```toml
+fn_params_layout = "Tall"       # One param per line if doesn't fit
+fn_params_layout = "Compressed" # Pack params
+fn_params_layout = "Vertical"   # Always one per line
+```
+
+## Commands
+
+```bash
+# Format all files
+cargo fmt
+
+# Check without modifying
+cargo fmt --check
+
+# Format specific file
+rustfmt src/main.rs
+
+# Use nightly features
+rustup run nightly cargo fmt
+
+# Show config options
+rustfmt --help=config
+```
+
+## Editor Integration
+
+### VS Code
+
+With rust-analyzer extension, formatting uses rustfmt automatically.
+
+```json
+// .vscode/settings.json
+{
+  "editor.formatOnSave": true,
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  }
+}
+```
+
+### Neovim
+
+With rust-analyzer:
+```lua
+-- Format on save
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*.rs",
+  callback = function()
+    vim.lsp.buf.format()
+  end,
+})
+```
+
+## CI/CD Integration
+
+```yaml
+# GitHub Actions
+- name: Check formatting
+  run: cargo fmt --check
+```
+
+## Pre-commit Hook
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+```
+
+## Skip Formatting
+
+For specific code blocks:
+
+```rust
+#[rustfmt::skip]
+fn special_alignment() {
+    let matrix = [
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+    ];
+}
+
+// Or skip entire module
+#[rustfmt::skip]
+mod generated;
+```
+
+Or via config:
+```toml
+# rustfmt.toml
+ignore = [
+    "src/generated/*",
+]
+```
+
+## Makefile Integration
+
+```makefile
+.PHONY: fmt fmt-check
+
+fmt:
+	cargo fmt
+
+fmt-check:
+	cargo fmt --check
+```
+
+## Common Patterns
+
+### Format on Commit
+
+```bash
+# In .git/hooks/pre-commit
+#!/bin/sh
+cargo fmt --check || exit 1
+```
+
+### Workspace Formatting
+
+Place `rustfmt.toml` at workspace root - all crates will use it.
+
+```
+workspace/
+├── Cargo.toml
+├── rustfmt.toml  # Applies to all crates
+└── crates/
+    └── ...
+```
+
+## Customization Points
+
+| Option | Values | Notes |
+|--------|--------|-------|
+| `edition` | `"2015"`, `"2018"`, `"2021"` | Match Cargo.toml |
+| `max_width` | Number (default: 100) | Line width |
+| `tab_spaces` | Number (default: 4) | Spaces per indent |
+| `newline_style` | `"Unix"`, `"Windows"`, `"Native"` | Line endings |

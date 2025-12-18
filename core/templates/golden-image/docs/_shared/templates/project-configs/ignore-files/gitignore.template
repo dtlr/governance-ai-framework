@@ -1,0 +1,196 @@
+# .gitignore Template
+
+## Purpose
+
+Exclude files from Git version control - build artifacts, dependencies, secrets, and OS/editor files.
+
+## Official Documentation
+
+- [Git - gitignore](https://git-scm.com/docs/gitignore) - Pattern syntax
+- [GitHub gitignore templates](https://github.com/github/gitignore) - Community templates
+
+## When to Use
+
+- ✅ Any Git repository
+- ✅ Required for every project
+
+## When NOT to Use
+
+- ❌ Never skip this file
+- ❌ Non-git version control (use their equivalent)
+
+## Required Marker Files
+
+- `.git/` directory (any git repo)
+
+## Template
+
+```gitignore
+# =============================================================================
+# .gitignore - <PROJECT_NAME>
+# =============================================================================
+
+# === OS Generated ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# === Editors & IDEs ===
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+*.sublime-workspace
+*.sublime-project
+
+# === Logs ===
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Environment & Secrets ===
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# === Temporary Files ===
+tmp/
+temp/
+*.tmp
+*.temp
+
+# <STACK_SPECIFIC_PATTERNS>
+# See: _common/gitignore-patterns.md for patterns by stack
+```
+
+## Stack-Specific Additions
+
+Add these sections based on detected project type. See `_common/gitignore-patterns.md` for complete patterns.
+
+### JavaScript/Node.js
+```gitignore
+# === JavaScript/Node ===
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+coverage/
+.cache/
+*.tsbuildinfo
+```
+
+### Python
+```gitignore
+# === Python ===
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+.pytest_cache/
+.mypy_cache/
+```
+
+### Go
+```gitignore
+# === Go ===
+bin/
+*.exe
+*.test
+vendor/
+```
+
+### Terraform/IaC
+```gitignore
+# === Terraform/OpenTofu ===
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+*.tfplan
+```
+
+### Rust
+```gitignore
+# === Rust ===
+target/
+**/*.rs.bk
+Cargo.lock  # For libraries only
+```
+
+### Docker
+```gitignore
+# === Docker ===
+docker-compose.override.yml
+docker-compose.local.yml
+```
+
+### AI Governance
+```gitignore
+# === AI Governance ===
+.ai/_scratch/
+.ai/_out/
+```
+
+## Customization Points
+
+| Placeholder | Description |
+|-------------|-------------|
+| `<PROJECT_NAME>` | Your project name for the header |
+| `<STACK_SPECIFIC_PATTERNS>` | Patterns from detected stacks |
+
+## Validation Commands
+
+```bash
+# Check if a file is ignored
+git check-ignore -v path/to/file
+
+# List all ignored files
+git status --ignored
+
+# Test pattern against files
+git check-ignore -v --no-index *
+
+# Debug why file isn't ignored
+git check-ignore -v --non-matching path/to/file
+```
+
+## Common Negation Patterns
+
+Sometimes you need to include a file that would otherwise be ignored:
+
+```gitignore
+# Ignore all .env files except the example
+.env*
+!.env.example
+
+# Ignore dist but keep .gitkeep
+dist/*
+!dist/.gitkeep
+
+# Ignore vendor except specific package
+vendor/*
+!vendor/important-package/
+```
+
+## Integration Notes
+
+- `.gitignore` in root applies to entire repo
+- Subdirectory `.gitignore` files extend root patterns
+- Already-tracked files aren't affected (use `git rm --cached`)
+- Check in `.gitignore` to version control (don't ignore it!)

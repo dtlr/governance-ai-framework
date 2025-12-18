@@ -23,7 +23,12 @@ core/
 │   ├── directory-contract.md # A/B/C file classification
 │   ├── file-lifecycle.md    # Create/update/delete rules
 │   ├── repo-router.md       # Directory→purpose mapping
-│   └── submodule-management.md # Submodule version/update workflow
+│   ├── submodule-management.md # Submodule version/update workflow
+│   ├── claude-cookbook-patterns.md # Efficiency/accuracy patterns
+│   ├── project-type-detection.md # Stack detection for config relevance
+│   ├── cost-optimization.md # Prompt-to-cost tracking, efficiency patterns
+│   ├── cost-optimal-routing.md # Tiered routing, minimize AI costs
+│   └── wiring-guide.md      # How to connect lazy loading components
 ├── rules/                    # Core behavioral rules
 │   ├── SYSTEM.md            # Fundamental AI behavior
 │   └── AGENT_CONTRACT.md    # AI responsibilities
@@ -48,6 +53,11 @@ AI assistants should load these rules based on context:
 | `file-lifecycle.md` | Create/update/delete workflow | When modifying files |
 | `repo-router.md` | Directory purpose mapping | When navigating repo |
 | `submodule-management.md` | Governance submodule updates | When updating governance |
+| `claude-cookbook-patterns.md` | Efficiency/accuracy patterns | Optimization tasks |
+| `project-type-detection.md` | Stack detection for config relevance | Creating configs, suggesting tooling |
+| `cost-optimization.md` | Prompt-to-cost tracking, efficiency feedback | Every session (mandatory tracking) |
+| `cost-optimal-routing.md` | Tiered routing, minimize AI costs | Designing pipelines, model selection |
+| `wiring-guide.md` | How to connect lazy loading components | Setting up new repos |
 
 ## Usage
 
@@ -59,7 +69,7 @@ git submodule add https://github.com/dtlr/governance-core.git .governance/core
 
 ## Version
 
-Current version: v1.0.0
+Current version: v1.6.0
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 

@@ -1,0 +1,236 @@
+# .dockerignore Template
+
+## Purpose
+
+Exclude files from Docker build context to reduce image size, speed up builds, and prevent secrets from being copied into images.
+
+## Official Documentation
+
+- [Dockerfile .dockerignore](https://docs.docker.com/reference/dockerfile/#dockerignore-file) - Official reference
+- [Best practices](https://docs.docker.com/build/building/best-practices/) - Build optimization
+
+## When to Use
+
+- ✅ Any project with a Dockerfile
+- ✅ Projects using Docker Compose
+- ✅ CI/CD pipelines building Docker images
+
+## When NOT to Use
+
+- ❌ Projects without Docker
+- ❌ Projects only running pre-built images (no build step)
+
+## Required Marker Files
+
+- `Dockerfile` or `Containerfile`
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| Multi-stage builds | When you need build tools not in final image |
+| `.gitignore` only | Never - Docker needs its own ignore file |
+
+## Template
+
+```dockerignore
+# =============================================================================
+# .dockerignore - <PROJECT_NAME>
+# =============================================================================
+
+# === Version Control ===
+.git/
+.gitignore
+.gitattributes
+
+# === Documentation ===
+*.md
+!README.md
+docs/
+LICENSE
+
+# === CI/CD ===
+.github/
+.gitlab-ci.yml
+.circleci/
+.travis.yml
+Jenkinsfile
+
+# === IDE & Editor ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === Environment & Secrets ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# === Testing ===
+tests/
+test/
+__tests__/
+*.test.*
+*.spec.*
+coverage/
+.nyc_output/
+
+# === Build Artifacts ===
+# (usually want fresh build in container)
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+
+# === Docker Files ===
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# <STACK_SPECIFIC_PATTERNS>
+```
+
+## Stack-Specific Additions
+
+### JavaScript/Node.js
+```dockerignore
+# === JavaScript/Node ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.yarn/
+dist/
+build/
+.next/
+.nuxt/
+.cache/
+*.tsbuildinfo
+```
+
+### Python
+```dockerignore
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+```
+
+### Go
+```dockerignore
+# === Go ===
+# Usually want source for build
+*.exe
+*.test
+bin/
+```
+
+### Terraform/IaC
+```dockerignore
+# === IaC (if containerizing tools) ===
+**/.terraform/
+*.tfstate*
+*.tfvars
+*.tfplan
+```
+
+### Rust
+```dockerignore
+# === Rust ===
+target/
+**/*.rs.bk
+```
+
+## Multi-Stage Build Considerations
+
+With multi-stage builds, you may want different patterns:
+
+```dockerfile
+# Stage 1: Build (needs source + deps)
+FROM node:20 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Production (only needs output)
+FROM node:20-slim
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+CMD ["node", "dist/index.js"]
+```
+
+In this case, `.dockerignore` applies to the COPY in stage 1.
+
+## Validation Commands
+
+```bash
+# Check build context size
+docker build --no-cache . 2>&1 | grep "Sending build context"
+
+# List what would be sent (approximation)
+tar -cvf - . 2>/dev/null | tar -tvf - 2>/dev/null | head -50
+
+# Build with progress to see context transfer
+docker build --progress=plain .
+```
+
+## Common Patterns
+
+### Ignore Everything, Include Explicitly
+```dockerignore
+# Ignore everything
+*
+
+# Include only what's needed
+!src/
+!package.json
+!package-lock.json
+!tsconfig.json
+```
+
+### Keep Structure, Exclude Specific
+```dockerignore
+# Exclude heavy/unnecessary dirs
+node_modules/
+.git/
+docs/
+tests/
+
+# Exclude by extension
+*.md
+*.log
+```
+
+## Security Checklist
+
+Before building images, verify these are ignored:
+
+- [ ] `.env` files (secrets)
+- [ ] `.git/` directory (history, credentials)
+- [ ] `*.pem`, `*.key` files
+- [ ] CI/CD configs (may contain secrets)
+- [ ] Test fixtures with sensitive data
+
+## Integration Notes
+
+- Place `.dockerignore` in same directory as `Dockerfile`
+- Patterns are relative to context directory (usually repo root)
+- Unlike `.gitignore`, doesn't support `!` negation in all Docker versions
+- Build context is everything NOT ignored, sent to Docker daemon

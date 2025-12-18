@@ -1,0 +1,366 @@
+# Turborepo Configuration Template
+
+## Purpose
+
+Monorepo build system with intelligent caching and task orchestration. Runs tasks in parallel across packages while respecting dependencies.
+
+## Official Documentation
+
+- [Turborepo Docs](https://turbo.build/repo/docs) - Complete documentation
+- [Configuration Reference](https://turbo.build/repo/docs/reference/configuration) - All options
+- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) - Team caching
+
+## When to Use
+
+- ✅ Monorepos with multiple packages
+- ✅ Projects wanting build caching
+- ✅ Teams wanting shared remote cache
+- ✅ CI/CD wanting faster builds
+
+## When NOT to Use
+
+- ❌ Single-package projects (no benefit)
+- ❌ Projects with < 3 packages (marginal benefit)
+- ❌ Teams preferring Nx or custom solutions
+
+## Required Marker Files
+
+- `package.json` (workspace root)
+- `turbo.json`
+- Workspace configuration (`workspaces` in package.json or `pnpm-workspace.yaml`)
+
+## Trade-offs & Alternatives
+
+| Alternative | When to Use Instead |
+|-------------|---------------------|
+| [Nx](https://nx.dev/) | More features, affected commands, generators |
+| [Lerna](https://lerna.js.org/) | Publishing-focused, simpler |
+| npm workspaces alone | Very simple monorepos |
+| [moon](https://moonrepo.dev/) | Polyglot monorepos |
+
+## Template
+
+### Basic Configuration
+
+```json
+// turbo.json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "build/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
+```
+
+### With Environment Variables
+
+```json
+// turbo.json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["CI", "NODE_ENV"],
+  "globalPassThroughEnv": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["API_URL", "PUBLIC_*"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"],
+      "env": ["DATABASE_URL"]
+    }
+  }
+}
+```
+
+### With Remote Caching
+
+```json
+// turbo.json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "remoteCache": {
+    "signature": true
+  },
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    }
+  }
+}
+```
+
+Enable remote cache:
+```bash
+# Login to Vercel (free tier available)
+npx turbo login
+
+# Link to remote cache
+npx turbo link
+```
+
+### With Package-Specific Config
+
+```json
+// turbo.json (root)
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    }
+  }
+}
+```
+
+```json
+// apps/web/turbo.json (package override)
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": [".next/**", "!.next/cache/**"]
+    }
+  }
+}
+```
+
+## Workspace Setup
+
+### npm/yarn workspaces
+
+```json
+// package.json (root)
+{
+  "name": "monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "dev": "turbo run dev"
+  }
+}
+```
+
+### pnpm workspaces
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+```
+
+## Key Concepts
+
+### Task Dependencies
+
+```json
+{
+  "tasks": {
+    "build": {
+      // ^build = run build in dependencies first
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      // Local build must run first
+      "dependsOn": ["build"]
+    },
+    "deploy": {
+      // Both build and test must complete
+      "dependsOn": ["build", "test"]
+    }
+  }
+}
+```
+
+### Outputs (for caching)
+
+```json
+{
+  "tasks": {
+    "build": {
+      "outputs": [
+        "dist/**",           // Include dist folder
+        ".next/**",          // Include .next folder
+        "!.next/cache/**"    // Exclude cache subfolder
+      ]
+    },
+    "lint": {
+      "outputs": []          // No outputs (still caches exit code)
+    }
+  }
+}
+```
+
+### Inputs (cache keys)
+
+```json
+{
+  "tasks": {
+    "build": {
+      "inputs": [
+        "src/**",
+        "package.json",
+        "tsconfig.json"
+      ],
+      "outputs": ["dist/**"]
+    }
+  }
+}
+```
+
+## Common Commands
+
+```bash
+# Run task in all packages
+turbo run build
+
+# Run in specific packages
+turbo run build --filter=@myorg/web
+
+# Run in package and its dependencies
+turbo run build --filter=@myorg/web...
+
+# Run in packages affected by changes
+turbo run build --filter=[origin/main]
+
+# Dry run (show what would run)
+turbo run build --dry-run
+
+# Force run (ignore cache)
+turbo run build --force
+
+# Show task graph
+turbo run build --graph
+```
+
+## Filter Syntax
+
+| Filter | Meaning |
+|--------|---------|
+| `--filter=app` | Package named "app" |
+| `--filter=@org/app` | Scoped package |
+| `--filter=./apps/*` | Packages in apps/ |
+| `--filter=app...` | Package and dependencies |
+| `--filter=...app` | Package and dependents |
+| `--filter=[HEAD^1]` | Changed since commit |
+| `--filter=[origin/main]` | Changed since main |
+
+## Dependencies
+
+```bash
+# Install Turborepo
+npm install -D turbo
+
+# Global install (optional)
+npm install -g turbo
+```
+
+## npm Scripts
+
+```json
+{
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules"
+  }
+}
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install
+
+      - run: pnpm turbo run build test lint
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+```
+
+## Validation
+
+```bash
+# Check turbo config
+turbo run build --dry-run
+
+# Show dependency graph
+turbo run build --graph
+
+# Show cache status
+turbo run build --summarize
+```
+
+## Common Issues
+
+### Cache not working
+- Check `outputs` are correct paths
+- Verify environment variables are in `env` or `globalEnv`
+- Run with `--verbosity=2` to debug
+
+### Task running out of order
+- Add missing `dependsOn: ["^build"]`
+- Check workspace package.json dependencies
+
+### Slow first build
+- Expected - cache builds over time
+- Consider remote caching for teams

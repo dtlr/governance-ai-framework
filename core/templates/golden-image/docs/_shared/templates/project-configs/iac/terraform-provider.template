@@ -1,0 +1,313 @@
+# Terraform Provider Configuration Template
+
+## Purpose
+
+Define required providers, version constraints, and Terraform/OpenTofu version requirements. Ensures consistent, reproducible infrastructure deployments.
+
+## Official Documentation
+
+- [Provider Requirements](https://developer.hashicorp.com/terraform/language/providers/requirements) - Version constraints
+- [Provider Configuration](https://developer.hashicorp.com/terraform/language/providers/configuration) - Provider setup
+- [Terraform Registry](https://registry.terraform.io/) - All providers
+
+## When to Use
+
+- ✅ Any Terraform/OpenTofu project
+- ✅ Defines which providers and versions are needed
+- ✅ Should be in every IaC repository
+
+## When NOT to Use
+
+- ❌ Non-Terraform/OpenTofu projects
+- ❌ Pulumi, CDK, Ansible, etc.
+
+## Required Marker Files
+
+- `*.tf` files in project
+
+## Template
+
+### Basic (Single Provider)
+
+```hcl
+# versions.tf
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Environment = var.environment
+      ManagedBy   = "Terraform"
+      Project     = var.project_name
+    }
+  }
+}
+```
+
+### Multi-Cloud
+
+```hcl
+# versions.tf
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+provider "azurerm" {
+  features {}
+  subscription_id = var.azure_subscription_id
+}
+
+provider "google" {
+  project = var.gcp_project
+  region  = var.gcp_region
+}
+```
+
+### With Supporting Providers
+
+```hcl
+# versions.tf
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    # Cloud provider
+    digitalocean = {
+      source  = "digitalocean/digitalocean"
+      version = "~> 2.0"
+    }
+
+    # DNS
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
+
+    # Secrets
+    onepassword = {
+      source  = "1Password/onepassword"
+      version = "~> 1.4"
+    }
+
+    # Kubernetes
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+
+    # Helm
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.0"
+    }
+
+    # Random values
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+
+    # Null resource (for provisioners)
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
+  }
+}
+```
+
+### With Backend Configuration
+
+```hcl
+# versions.tf
+terraform {
+  required_version = ">= 1.6.0"
+
+  # Remote state backend
+  backend "s3" {
+    bucket         = "<STATE_BUCKET>"
+    key            = "<PROJECT>/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "<LOCK_TABLE>"
+  }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+```
+
+### Cloudflare R2 Backend (OpenTofu)
+
+```hcl
+# versions.tf
+terraform {
+  required_version = ">= 1.6.0"
+
+  backend "s3" {
+    bucket                      = "<R2_BUCKET>"
+    key                         = "<PROJECT>/terraform.tfstate"
+    region                      = "auto"
+    skip_credentials_validation = true
+    skip_metadata_api_check     = true
+    skip_region_validation      = true
+    skip_requesting_account_id  = true
+    skip_s3_checksum            = true
+    use_path_style              = true
+    endpoints = {
+      s3 = "https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
+    }
+  }
+
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
+  }
+}
+```
+
+## Version Constraint Syntax
+
+| Syntax | Meaning |
+|--------|---------|
+| `= 1.0.0` | Exact version |
+| `>= 1.0.0` | Minimum version |
+| `~> 1.0` | Allow 1.x but not 2.0 |
+| `~> 1.0.0` | Allow 1.0.x but not 1.1.0 |
+| `>= 1.0, < 2.0` | Version range |
+
+**Recommendation:** Use `~> X.0` for major version pinning with patch updates.
+
+## Common Providers
+
+| Provider | Source | Use Case |
+|----------|--------|----------|
+| `aws` | `hashicorp/aws` | AWS resources |
+| `azurerm` | `hashicorp/azurerm` | Azure resources |
+| `google` | `hashicorp/google` | GCP resources |
+| `kubernetes` | `hashicorp/kubernetes` | K8s resources |
+| `helm` | `hashicorp/helm` | Helm charts |
+| `cloudflare` | `cloudflare/cloudflare` | Cloudflare |
+| `digitalocean` | `digitalocean/digitalocean` | DigitalOcean |
+| `datadog` | `DataDog/datadog` | Datadog |
+| `github` | `integrations/github` | GitHub |
+| `random` | `hashicorp/random` | Random values |
+
+## Provider Aliases
+
+For multi-region or multi-account:
+
+```hcl
+provider "aws" {
+  region = "us-east-1"
+  alias  = "east"
+}
+
+provider "aws" {
+  region = "us-west-2"
+  alias  = "west"
+}
+
+resource "aws_instance" "east" {
+  provider = aws.east
+  # ...
+}
+
+resource "aws_instance" "west" {
+  provider = aws.west
+  # ...
+}
+```
+
+## Authentication
+
+Providers typically use environment variables:
+
+```bash
+# AWS
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+
+# Azure
+export ARM_CLIENT_ID="..."
+export ARM_CLIENT_SECRET="..."
+export ARM_TENANT_ID="..."
+export ARM_SUBSCRIPTION_ID="..."
+
+# GCP
+export GOOGLE_CREDENTIALS="..."
+
+# Cloudflare
+export CLOUDFLARE_API_TOKEN="..."
+
+# DigitalOcean
+export DIGITALOCEAN_TOKEN="..."
+```
+
+## Validation
+
+```bash
+# Initialize providers
+tofu init
+
+# Validate configuration
+tofu validate
+
+# Show provider versions
+tofu providers
+```
+
+## Upgrading Providers
+
+```bash
+# Upgrade to latest within constraints
+tofu init -upgrade
+
+# Check for available updates
+tofu providers lock -platform=linux_amd64 -platform=darwin_amd64
+```
+
+## Customization Points
+
+| Placeholder | Description |
+|-------------|-------------|
+| `<STATE_BUCKET>` | S3/R2 bucket for state |
+| `<PROJECT>` | Project identifier in state key |
+| `<LOCK_TABLE>` | DynamoDB table for locking |
+| `<ACCOUNT_ID>` | Cloudflare account ID for R2 |
