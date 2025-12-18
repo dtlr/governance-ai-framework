@@ -203,10 +203,10 @@ handle_conflicts() {
                     cp "$global_path" "$full_local"
                 fi
                 log OK "Replaced: $local_path (backup: .backup-$SESSION_ID)"
-                ((replaced++))
+                ((++replaced))
             else
                 log WARN "Skipped: $local_path"
-                ((skipped++))
+                ((++skipped))
             fi
         fi
     done
@@ -240,7 +240,7 @@ migrate_inference() {
                 # Exact match - delete local
                 log INFO "Duplicate: $filename → deleting (use global)"
                 [[ "$DRY_RUN" == false ]] && rm "$local_file"
-                ((deleted++))
+                ((++deleted))
             else
                 # Different - show diff, replace, offer to contribute
                 log DIFF "Differs: $filename"
@@ -257,7 +257,7 @@ migrate_inference() {
                     rm "$local_file"
                 fi
                 log OK "Removed local (use global): $filename"
-                ((deleted++))
+                ((++deleted))
             fi
         else
             # No global equivalent - this is unique
@@ -277,12 +277,12 @@ migrate_inference() {
                         cp "$local_file" "$CONTRIBUTIONS_DIR/"
                         CONTRIBUTIONS+=("$filename")
                         log OK "Saved for contribution"
-                        ((contributed++))
+                        ((++contributed))
                         ;;
                     3)
                         [[ "$DRY_RUN" == false ]] && rm "$local_file"
                         log OK "Deleted"
-                        ((deleted++))
+                        ((++deleted))
                         ;;
                     *)
                         log INFO "Keeping locally"
@@ -356,7 +356,7 @@ create_missing() {
         if [[ ! -f "$full_target" ]] && [[ -f "$source" ]]; then
             [[ "$DRY_RUN" == false ]] && cp "$source" "$full_target"
             log OK "Created: $target"
-            ((created++))
+            ((++created))
         fi
     done
     
@@ -364,7 +364,7 @@ create_missing() {
     if [[ ! -f "$REPO_ROOT/.ai/_scratch/.gitignore" ]]; then
         [[ "$DRY_RUN" == false ]] && echo -e "*\n!.gitignore" > "$REPO_ROOT/.ai/_scratch/.gitignore"
         log OK "Created: .ai/_scratch/.gitignore"
-        ((created++))
+        ((++created))
     fi
     
     log INFO "Created: $created files"
@@ -478,16 +478,6 @@ echo -e "${BLUE}║  You can contribute good local rules back to submodule      
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Run phases
-setup_submodule
-handle_conflicts
-migrate_inference
-create_missing
-discover_tooling
-generate_docs
-print_summary
-
-#═══════════════════════════════════════════════════════════════════════════════
 # PHASE 6: Tooling Discovery
 #═══════════════════════════════════════════════════════════════════════════════
 discover_tooling() {
@@ -539,13 +529,24 @@ discover_tooling() {
         
         # Check for pattern
         if [[ "$pattern" == *"*"* ]]; then
-            found=$(find . -maxdepth 4 -name "$pattern" -not -path "./.governance/*" -not -path "./node_modules/*" 2>/dev/null | head -3)
+            # Patterns with wildcards
+            if [[ "$pattern" == ".github/workflows/"* ]]; then
+                # Special case for GitHub Actions
+                found=$(find .github/workflows -maxdepth 1 \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | head -1)
+            else
+                found=$(find . -maxdepth 5 -name "${pattern##*/}" -not -path "./.governance/*" -not -path "./node_modules/*" 2>/dev/null | head -1)
+            fi
         elif [[ "$pattern" == *"/" ]]; then
+            # Directory patterns
             [[ -d "$pattern" ]] && found="$pattern"
         else
-            [[ -f "$pattern" ]] && found="$pattern"
+            # Exact file match at root, or search deeper
+            if [[ -f "$pattern" ]]; then
+                found="$pattern"
+            else
+                found=$(find . -maxdepth 5 -name "$pattern" -not -path "./.governance/*" -not -path "./node_modules/*" 2>/dev/null | head -1)
+            fi
         fi
-        
         if [[ -n "$found" ]]; then
             local first_match=$(echo "$found" | head -1)
             detected+=("$name|$first_match|$docs")
@@ -587,3 +588,13 @@ TOOLINGHEADER
     
     log OK "Created: .ai/TOOLING.md (${#detected[@]} tools)"
 }
+# Run phases
+setup_submodule
+handle_conflicts
+migrate_inference
+create_missing
+discover_tooling
+generate_docs
+print_summary
+
+#═══════════════════════════════════════════════════════════════════════════════
