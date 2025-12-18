@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2025-12-17
+
+### Added
+- **Submodule Management Guide** (`core/inference-rules/submodule-management.md`)
+  - Complete AI operations guide for governance submodule lifecycle
+  - Step-by-step procedures: validate → modify → version → update → validate
+  - Version and tag management (semantic versioning enforcement)
+  - Error recovery procedures (re-tagging, broken submodules)
+  - Safety rules and validation commands
+  - Consuming repo update workflow with `--force` tag fetch
+
+---
+
+## [1.1.0] - 2025-12-17
+
+### Added
+- **Golden Image Template** (`core/templates/golden-image/`)
+  - Complete reference implementation for repos adopting governance
+  - Pre-configured `.governance/` wrapper with manifest.json
+  - Pre-configured `.ai/` instance lifecycle directories (ledger, scratch, inference, bundles)
+  - Two bundled workflows: ai-file-governance-v1, repo-router-v1
+  - Setup instructions and placeholder guidance
+
+- **Directory Contract Inference Rule** (`core/inference-rules/directory-contract.md`)
+  - A/B/C file classification system
+  - Class A: Repo artifacts (shipped with repo)
+  - Class B: AI governance artifacts (committed but meta)
+  - Class C: Ephemeral files (never committed)
+
+- **File Lifecycle Inference Rule** (`core/inference-rules/file-lifecycle.md`)
+  - Create/update/delete decision rules
+  - Pre-creation checklist (gitignore assessment)
+  - Validation workflow requirements
+
+- **Repo Router Inference Rule** (`core/inference-rules/repo-router.md`)
+  - Routing context map structure
+  - Directory→purpose mapping guidelines
+  - AI navigation patterns
+
+---
+
 ## [1.0.0] - 2025-12-16
 
 ### Added
@@ -210,6 +251,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.2.0 | 2025-12-17 | AI submodule management guide |
+| 1.1.0 | 2025-12-17 | Golden image template + 3 inference rules |
 | 1.0.0 | 2025-12-16 | Initial release - 3-layer system, micro-batch mode, lazy loading |
 
 ---
