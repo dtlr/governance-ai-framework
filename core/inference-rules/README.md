@@ -21,6 +21,7 @@ These rules are **global** - they apply to every repository using the governance
 | **Cost Optimization** | `cost-optimization.md` | Track prompt-to-cost patterns, efficiency feedback | Every session (mandatory tracking) |
 | **Cost-Optimal Routing** | `cost-optimal-routing.md` | Tiered routing strategy, minimize AI costs | Designing pipelines, model selection |
 | **Wiring Guide** | `wiring-guide.md` | How to connect lazy loading components | Setting up new repos, debugging wiring |
+| **Context Management** | `context-management.md` | Session lifecycle, context thresholds, handoffs | Context >70%, session transitions |
 
 ---
 
@@ -128,6 +129,16 @@ Key points:
 - Pointer patterns (forward, back, cross, governance references)
 - Validation checklist and common wiring mistakes
 
+### Context Management (`context-management.md`)
+**Core principle**: Proactively manage context to prevent exhaustion while maintaining work continuity.
+
+Key points:
+- Thresholds: 50-70% awareness, 70-80% suggest options, 80-90% action required, 90%+ critical
+- Handoff document pattern for session continuity
+- Options at threshold: continue, compact, handoff, commit & close
+- Red flags: same file read 3+ times, context >150k on simple task
+- Ledger entry required for context-exhausted sessions
+
 ---
 
 ## Loading Strategy
@@ -162,6 +173,10 @@ Load when discussing costs or optimization:
 ### On System Setup/Wiring
 Load when setting up new repos or debugging context loading:
 - `wiring-guide.md` - Know how to connect components
+
+### On Context Pressure
+Load when context usage is high or session transitions needed:
+- `context-management.md` - Know thresholds, handoff patterns, options
 
 ---
 
