@@ -370,6 +370,61 @@ git -C .governance/ai checkout v1.2.0
 
 ---
 
+## MANDATORY: Propagation to Consuming Repos
+
+**CRITICAL RULE**: After ANY governance framework change that is committed and tagged, AI assistants MUST update ALL active consuming repos in the same session.
+
+### Why This Is Mandatory
+
+1. **Consistency**: Consuming repos should always use the latest governance rules
+2. **No Drift**: Prevents repos from running on stale rules
+3. **Single Transaction**: Framework change + propagation = one unit of work
+
+### Enforcement
+
+```
+IF governance-ai-framework has new commits/tags
+AND AI is working in a consuming repo (tf-msvcs, etc.)
+THEN AI MUST:
+  1. Update submodule to new version
+  2. Commit the submodule pointer change
+  3. Validate the installation
+BEFORE considering the work complete
+```
+
+### Triggers for Mandatory Propagation
+
+| Trigger | Action Required |
+|---------|-----------------|
+| Created/modified inference rule | Update all consuming repos |
+| Updated templates | Update all consuming repos |
+| Changed SYSTEM.md or AGENT_CONTRACT.md | Update all consuming repos |
+| Bumped VERSION and tagged | Update all consuming repos |
+| `direnv allow` auto-update enabled | Happens automatically |
+
+### If Working in Multiple Repos
+
+When working across governance-ai-framework AND consuming repos:
+
+```bash
+# After committing and tagging in governance repo:
+
+# 1. For EACH consuming repo:
+cd /path/to/consuming-repo
+git -C .governance/ai fetch origin --tags --force
+git -C .governance/ai checkout vX.Y.Z
+git add .governance/ai
+git commit -m "chore(governance): Update submodule to vX.Y.Z"
+
+# 2. DO NOT consider work complete until all repos are updated
+```
+
+### Failure Condition
+
+- ❌ Governance framework updated but consuming repo submodule NOT updated in same session
+
+---
+
 ## Related Documentation
 
 - `CONTRIBUTING.md` - Detailed contribution guidelines
