@@ -2,15 +2,9 @@
 set -euo pipefail
 
 # align-repo.sh - Align any repository to governance golden-image
-# 
-# Usage:
-#   ./align-repo.sh [--dry-run] [--interactive]
 #
-# Prerequisites:
-#   - Governance submodule at .governance/ai
-#   - Claude Code CLI available
-#
-# This script can be copied to any repo or run from the governance submodule.
+# Integrates with:
+#   - .ai/ledger/LEDGER.md (operations audit)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -24,6 +18,8 @@ NC='\033[0m'
 
 DRY_RUN=false
 INTERACTIVE=false
+SESSION_ID=$(date +%Y%m%d-%H%M%S)
+START_TIME=$(date +%s)
 
 usage() {
     cat << EOF
@@ -33,21 +29,56 @@ Align a repository to the governance golden-image structure.
 
 Options:
     --dry-run       Show what would be done without executing
-    --interactive   Run prompts interactively (default: headless)
+    --interactive   Run prompts interactively
     -h, --help      Show this help message
 
-Prerequisites:
-    - Git repository with governance submodule at .governance/ai
-    - Claude Code CLI (claude) available in PATH
+Outputs to:
+    .ai/ledger/LEDGER.md   Operations audit entry
 
 Example:
-    # From any repo with governance submodule
     .governance/ai/core/automation/align-repo.sh
-    
-    # Or copy this script and run
-    ./align-repo.sh --dry-run
 EOF
     exit 0
+}
+
+# Ledger function
+log_to_ledger() {
+    local status="$1"
+    local details="$2"
+    local ledger_file="$REPO_ROOT/.ai/ledger/LEDGER.md"
+    
+    # Create ledger directory if needed
+    mkdir -p "$(dirname "$ledger_file")"
+    
+    # Create ledger if it doesn't exist
+    if [[ ! -f "$ledger_file" ]]; then
+        cat > "$ledger_file" << 'LEDGER'
+# Operations Ledger
+
+Track AI operations for audit and learning.
+
+## Log
+
+LEDGER
+    fi
+    
+    local end_time=$(date +%s)
+    local duration=$((end_time - START_TIME))
+    local timestamp=$(date -Iseconds)
+    
+    # Append entry
+    cat >> "$ledger_file" << ENTRY
+
+---
+
+### $timestamp - Repository Alignment ($status)
+
+**Session**: $SESSION_ID
+**Duration**: ${duration}s
+
+$details
+
+ENTRY
 }
 
 # Parse arguments
@@ -70,8 +101,6 @@ fi
 
 if [[ -z "$GOVERNANCE_PATH" ]]; then
     echo -e "${RED}Error: Could not find governance submodule${NC}"
-    echo "Expected at: $REPO_ROOT/.governance/ai"
-    echo ""
     echo "Initialize with:"
     echo "  git submodule add https://github.com/dtlr/governance-ai-framework .governance/ai"
     exit 1
@@ -81,25 +110,22 @@ BUNDLE_PATH="$GOVERNANCE_PATH/core/templates/golden-image/.ai/bundles/repo-align
 
 if [[ ! -d "$BUNDLE_PATH" ]]; then
     echo -e "${RED}Error: repo-alignment-v1 bundle not found${NC}"
-    echo "Expected at: $BUNDLE_PATH"
-    echo ""
-    echo "Update governance submodule:"
-    echo "  cd .governance/ai && git pull origin main"
     exit 1
 fi
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║       Repository Alignment to Governance Golden Image        ║${NC}"
+echo -e "${BLUE}╠══════════════════════════════════════════════════════════════╣${NC}"
+echo -e "${BLUE}║  Session: $SESSION_ID                              ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "Repository:  ${GREEN}$REPO_ROOT${NC}"
-echo -e "Governance:  ${GREEN}$GOVERNANCE_PATH${NC}"
-echo -e "Bundle:      ${GREEN}$BUNDLE_PATH${NC}"
 echo -e "Mode:        ${YELLOW}$(if $DRY_RUN; then echo "DRY RUN"; elif $INTERACTIVE; then echo "INTERACTIVE"; else echo "HEADLESS"; fi)${NC}"
 echo ""
 
 # Create scratch directory
 mkdir -p "$REPO_ROOT/.ai/_scratch"
+mkdir -p "$REPO_ROOT/.ai/ledger"
 
 # List prompts
 PROMPTS=($(find "$BUNDLE_PATH/prompts" -name "*.md" | sort))
@@ -112,20 +138,20 @@ echo ""
 
 if $DRY_RUN; then
     echo -e "${YELLOW}DRY RUN: No changes will be made${NC}"
-    echo ""
-    echo "Would execute:"
-    for prompt in "${PROMPTS[@]}"; do
-        echo "  claude -p \"\$(cat $prompt)\" --allowedTools Edit,Write,Bash"
-    done
+    log_to_ledger "DRY_RUN" "Dry run only - no execution"
     exit 0
 fi
 
 # Check for claude CLI
 if ! command -v claude &> /dev/null; then
     echo -e "${RED}Error: claude CLI not found${NC}"
-    echo "Install Claude Code CLI first."
+    log_to_ledger "ERROR" "Claude CLI not found"
     exit 1
 fi
+
+# Track progress
+STAGES_COMPLETED=0
+FILES_CREATED=0
 
 # Execute prompts
 TOTAL=${#PROMPTS[@]}
@@ -138,29 +164,50 @@ for prompt in "${PROMPTS[@]}"; do
     echo -e "${BLUE}[$CURRENT/$TOTAL] Executing: $PROMPT_NAME${NC}"
     
     if $INTERACTIVE; then
-        echo -e "${YELLOW}Paste the following prompt into Claude:${NC}"
-        echo "---"
-        cat "$prompt"
-        echo "---"
-        read -p "Press Enter when complete..."
-    else
-        # Headless execution
-        cd "$REPO_ROOT"
-        claude -p "$(cat "$prompt")" --allowedTools Edit,Write,Bash 2>&1 | tee ".ai/_scratch/${PROMPT_NAME}.log"
+        read -p "Press Enter to continue..."
     fi
     
-    echo -e "${GREEN}✓ $PROMPT_NAME complete${NC}"
+    cd "$REPO_ROOT"
+    LOG_FILE=".ai/_scratch/${PROMPT_NAME}.log"
+    
+    if claude -p "$(cat "$prompt")" --allowedTools Edit,Write,Bash 2>&1 | tee "$LOG_FILE"; then
+        ((++STAGES_COMPLETED))
+        echo -e "${GREEN}✓ $PROMPT_NAME complete${NC}"
+    else
+        echo -e "${RED}✗ $PROMPT_NAME failed${NC}"
+        log_to_ledger "FAILED" "**Failed at: $PROMPT_NAME**
+
+Stages completed: $STAGES_COMPLETED/$TOTAL
+
+Check: .ai/_scratch/${PROMPT_NAME}.log"
+        exit 1
+    fi
     echo ""
 done
+
+# Count created files (rough estimate from scratch logs)
+FILES_CREATED=$(grep -l "created\|Created\|wrote\|Wrote" .ai/_scratch/*.log 2>/dev/null | wc -l || echo "?")
+
+# Log success
+log_to_ledger "COMPLETED" "**Repository aligned to golden-image**
+
+Stages: $STAGES_COMPLETED/$TOTAL completed
+
+**Outputs:**
+- .ai/_scratch/repo-shape.md
+- .ai/_scratch/golden-comparison.md
+- .ai/_scratch/alignment-plan.md
+- .ai/_scratch/alignment-verification.md
+
+**Next:** Review generated governance files and customize for your project."
 
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║                    ALIGNMENT COMPLETE                        ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "Outputs:"
-echo "  - .ai/_scratch/repo-shape.md"
-echo "  - .ai/_scratch/golden-comparison.md"
-echo "  - .ai/_scratch/alignment-plan.md"
-echo "  - .ai/_scratch/alignment-verification.md"
+echo -e "Session: ${CYAN}$SESSION_ID${NC}"
+echo -e "Stages:  ${GREEN}$STAGES_COMPLETED${NC}/$TOTAL"
 echo ""
 echo "Review generated files and customize for your project."
+echo ""
+echo -e "${GREEN}Logged to .ai/ledger/LEDGER.md${NC}"
