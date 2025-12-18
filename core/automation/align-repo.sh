@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# align-repo.sh - Complete repo alignment with migration support
+# align-repo.sh - Portable repo alignment script
 #
-# Features:
-# - Replace conflicts with submodule version (show diffs first)
-# - Offer to contribute local rules back to submodule
-# - Full documentation links
+# Can be called from any repository. Works on the CURRENT directory,
+# not where this script lives.
+#
+# Usage:
+#   /path/to/align-repo.sh                    # Align current repo
+#   /path/to/align-repo.sh --target /other    # Align specific repo
+#   /path/to/align-repo.sh --dry-run          # Preview only
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -19,13 +22,15 @@ CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
 NC='\033[0m'
 
+# Defaults
 DRY_RUN=false
-INTERACTIVE=true  # Default to interactive for migration decisions
+INTERACTIVE=true
 SKIP_UPDATE=false
+TARGET_DIR=""
 SESSION_ID=$(date +%Y%m%d-%H%M%S)
 START_TIME=$(date +%s)
 
-# Track contributions for potential PR
+# Track contributions
 CONTRIBUTIONS_DIR=""
 CONTRIBUTIONS=()
 
@@ -33,22 +38,28 @@ usage() {
     cat << EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Align repository to governance golden-image with migration support.
-
-Behavior:
-- Conflicting files are REPLACED with submodule version
-- Diffs are shown before replacement
-- You can contribute good local rules back to the submodule
+Portable repo alignment - works on ANY repository.
 
 Options:
+    --target <dir>      Align a specific directory (default: current dir)
     --non-interactive   Don't prompt (auto-replace, don't contribute)
     --skip-update       Don't update submodule version
     --dry-run           Preview changes only
     -h, --help          Show this help
 
+Examples:
+    # From any directory, align current repo
+    /path/to/align-repo.sh
+    
+    # Align a different repo
+    /path/to/align-repo.sh --target ~/work/other-repo
+    
+    # Add to PATH for convenience
+    export PATH="\$PATH:/path/to/governance/core/automation"
+    align-repo.sh  # Now works anywhere
+
 Documentation:
-    See .governance/ai/README.md for full documentation
-    Bundles: .governance/ai/core/templates/golden-image/.ai/bundles/*/RUN.md
+    See .governance/ai/README.md after alignment
 EOF
     exit 0
 }
@@ -65,7 +76,6 @@ log() {
     esac
 }
 
-# Show diff between two files
 show_diff() {
     local local_file="$1"
     local global_file="$2"
@@ -76,29 +86,19 @@ show_diff() {
     echo -e "${RED}--- LOCAL (will be replaced)${NC}"
     echo -e "${GREEN}+++ GLOBAL (from submodule)${NC}"
     echo ""
-    
-    # Show abbreviated diff
     diff -u "$local_file" "$global_file" 2>/dev/null | head -50 || true
-    
-    local local_lines=$(wc -l < "$local_file")
-    local global_lines=$(wc -l < "$global_file")
     echo ""
-    echo "Local: $local_lines lines | Global: $global_lines lines"
 }
 
-# Offer to contribute local rule to submodule
 offer_contribution() {
     local local_file="$1"
     local name=$(basename "$local_file")
     
-    if [[ "$INTERACTIVE" == false ]]; then
-        return 0
-    fi
+    [[ "$INTERACTIVE" == false ]] && return 0
     
     echo ""
     echo -e "${YELLOW}This local file has unique content not in global:${NC}"
     echo "  $name"
-    echo ""
     read -p "Contribute this to the governance submodule? [y/N]: " contribute
     
     if [[ "$contribute" =~ ^[Yy] ]]; then
@@ -106,17 +106,88 @@ offer_contribution() {
         cp "$local_file" "$CONTRIBUTIONS_DIR/"
         CONTRIBUTIONS+=("$name")
         log OK "Saved for contribution: $name"
-        echo ""
-        echo "After alignment, create a PR to governance repo with:"
-        echo "  $CONTRIBUTIONS_DIR/$name"
     fi
 }
 
 #═══════════════════════════════════════════════════════════════════════════════
-# PHASE 1: Submodule Setup
+# PHASE 0: Determine Target Repository
+#═══════════════════════════════════════════════════════════════════════════════
+determine_target() {
+    log STEP "Phase 0: Determine Target Repository"
+    
+    if [[ -n "$TARGET_DIR" ]]; then
+        # Explicit target provided
+        if [[ ! -d "$TARGET_DIR" ]]; then
+            log ERROR "Target directory does not exist: $TARGET_DIR"
+            exit 1
+        fi
+        REPO_ROOT="$(cd "$TARGET_DIR" && git rev-parse --show-toplevel 2>/dev/null || echo "$TARGET_DIR")"
+    else
+        # Use current working directory
+        REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    fi
+    
+    log INFO "Target repo: $REPO_ROOT"
+    
+    # Verify it's a git repo
+    if ! git -C "$REPO_ROOT" rev-parse --git-dir &>/dev/null; then
+        log WARN "Not a git repository. Proceeding anyway..."
+    fi
+    
+    cd "$REPO_ROOT"
+    CONTRIBUTIONS_DIR="$REPO_ROOT/.ai/_scratch/contributions-$SESSION_ID"
+}
+
+#═══════════════════════════════════════════════════════════════════════════════
+# PHASE 1: Read Existing References
+#═══════════════════════════════════════════════════════════════════════════════
+read_existing_references() {
+    shopt -s nullglob globstar 2>/dev/null || true
+    log STEP "Phase 1: Read Existing References"
+    
+    # Track existing file references that need updating
+    declare -gA EXISTING_REFS=()
+    
+    # Check .gitignore for patterns we need to preserve
+    if [[ -f "$REPO_ROOT/.gitignore" ]]; then
+        log INFO "Reading .gitignore patterns"
+        EXISTING_REFS[".gitignore"]="exists"
+    fi
+    
+    # Check for existing CLAUDE.md references
+    if [[ -f "$REPO_ROOT/CLAUDE.md" ]]; then
+        log INFO "Found existing CLAUDE.md"
+        EXISTING_REFS["CLAUDE.md"]="exists"
+        
+        # Extract any file references from CLAUDE.md
+        local refs=$(grep -oE '\`[^`]+\.(md|sh|json|yaml|yml)\`' "$REPO_ROOT/CLAUDE.md" 2>/dev/null | tr -d '`' | sort -u || true)
+        if [[ -n "$refs" ]]; then
+            log INFO "Found $(echo "$refs" | wc -l) file references in CLAUDE.md"
+        fi
+    fi
+    
+    # Check for existing router.md
+    if [[ -f "$REPO_ROOT/docs/_shared/router.md" ]]; then
+        log INFO "Found existing router.md"
+        EXISTING_REFS["router.md"]="exists"
+    fi
+    
+    # Check existing .ai structure
+    if [[ -d "$REPO_ROOT/.ai" ]]; then
+        log INFO "Found existing .ai/ structure"
+        for f in "$REPO_ROOT/.ai"/**/*.md; do
+            [[ -f "$f" ]] && EXISTING_REFS["${f#$REPO_ROOT/}"]="exists"
+        done
+    fi
+    
+    log INFO "Tracked ${#EXISTING_REFS[@]} existing references"
+}
+
+#═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2: Governance Submodule Setup
 #═══════════════════════════════════════════════════════════════════════════════
 setup_submodule() {
-    log STEP "Phase 1: Governance Submodule"
+    log STEP "Phase 2: Governance Submodule"
     
     local SUBMODULE_PATH=".governance/ai"
     local SUBMODULE_URL="https://github.com/dtlr/governance-ai-framework.git"
@@ -127,15 +198,15 @@ setup_submodule() {
         log INFO "Submodule exists"
         
         if [[ "$SKIP_UPDATE" == false ]]; then
-            log STEP "Updating to latest..."
+            log INFO "Checking for updates..."
             local current=$(cd "$SUBMODULE_PATH" && git describe --tags 2>/dev/null || git rev-parse --short HEAD)
             
-            (cd "$SUBMODULE_PATH" && git fetch origin --tags 2>/dev/null)
+            (cd "$SUBMODULE_PATH" && git fetch origin --tags 2>/dev/null) || true
             local latest=$(cd "$SUBMODULE_PATH" && git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "main")
             
             if [[ "$current" != "$latest" ]]; then
                 log INFO "Updating: $current → $latest"
-                [[ "$DRY_RUN" == false ]] && (cd "$SUBMODULE_PATH" && git checkout "$latest" 2>/dev/null)
+                [[ "$DRY_RUN" == false ]] && (cd "$SUBMODULE_PATH" && git checkout "$latest" 2>/dev/null) || true
             else
                 log INFO "Already at latest: $current"
             fi
@@ -148,7 +219,7 @@ setup_submodule() {
             else
                 git submodule add "$SUBMODULE_URL" "$SUBMODULE_PATH"
             fi
-            (cd "$SUBMODULE_PATH" && git fetch --tags && git checkout $(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "main"))
+            (cd "$SUBMODULE_PATH" && git fetch --tags && git checkout $(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "main")) || true
         }
         log OK "Initialized"
     fi
@@ -156,14 +227,13 @@ setup_submodule() {
     GOVERNANCE_PATH="$REPO_ROOT/$SUBMODULE_PATH"
     GOLDEN_IMAGE="$GOVERNANCE_PATH/core/templates/golden-image"
     GLOBAL_INFERENCE="$GOVERNANCE_PATH/core/inference-rules"
-    CONTRIBUTIONS_DIR="$REPO_ROOT/.ai/_scratch/contributions-$SESSION_ID"
 }
 
 #═══════════════════════════════════════════════════════════════════════════════
-# PHASE 2: Replace Conflicts with Diffs
+# PHASE 3: Handle Conflicts (Replace with Submodule)
 #═══════════════════════════════════════════════════════════════════════════════
 handle_conflicts() {
-    log STEP "Phase 2: Handle Conflicts (replace with submodule)"
+    log STEP "Phase 3: Handle Conflicts (replace with submodule)"
     
     local replaced=0
     local skipped=0
@@ -179,17 +249,14 @@ handle_conflicts() {
         local global_path="${MANAGED_FILES[$local_path]}"
         local full_local="$REPO_ROOT/$local_path"
         
-        # Skip if local doesn't exist
         [[ ! -f "$full_local" ]] && continue
         [[ ! -f "$global_path" ]] && continue
         
-        # Compare
         if ! diff -q "$full_local" "$global_path" &>/dev/null; then
             log DIFF "Conflict: $local_path"
             
             if [[ "$INTERACTIVE" == true ]]; then
                 show_diff "$full_local" "$global_path"
-                echo ""
                 read -p "Replace with submodule version? [Y/n]: " replace
                 replace=${replace:-Y}
             else
@@ -198,7 +265,6 @@ handle_conflicts() {
             
             if [[ "$replace" =~ ^[Yy] ]]; then
                 if [[ "$DRY_RUN" == false ]]; then
-                    # Backup local
                     cp "$full_local" "$full_local.backup-$SESSION_ID"
                     cp "$global_path" "$full_local"
                 fi
@@ -215,18 +281,16 @@ handle_conflicts() {
 }
 
 #═══════════════════════════════════════════════════════════════════════════════
-# PHASE 3: Inference Migration
+# PHASE 4: Inference Migration
 #═══════════════════════════════════════════════════════════════════════════════
 migrate_inference() {
-    log STEP "Phase 3: Inference Migration"
+    log STEP "Phase 4: Inference Migration"
     
     local LOCAL_INFERENCE="$REPO_ROOT/.ai/inference"
     local deleted=0
-    local contributed=0
     
     mkdir -p "$LOCAL_INFERENCE"
     
-    # Check each local inference file
     for local_file in "$LOCAL_INFERENCE"/*.md; do
         [[ ! -f "$local_file" ]] && continue
         [[ "$(basename "$local_file")" == "README.md" ]] && continue
@@ -235,80 +299,32 @@ migrate_inference() {
         local global_file="$GLOBAL_INFERENCE/$filename"
         
         if [[ -f "$global_file" ]]; then
-            # Global exists - compare
             if diff -q "$local_file" "$global_file" &>/dev/null; then
-                # Exact match - delete local
                 log INFO "Duplicate: $filename → deleting (use global)"
                 [[ "$DRY_RUN" == false ]] && rm "$local_file"
                 ((++deleted))
             else
-                # Different - show diff, replace, offer to contribute
                 log DIFF "Differs: $filename"
-                
-                if [[ "$INTERACTIVE" == true ]]; then
-                    show_diff "$local_file" "$global_file"
-                fi
-                
-                # Offer to contribute before replacing
+                [[ "$INTERACTIVE" == true ]] && show_diff "$local_file" "$global_file"
                 offer_contribution "$local_file"
-                
-                # Replace with global
-                if [[ "$DRY_RUN" == false ]]; then
-                    rm "$local_file"
-                fi
+                [[ "$DRY_RUN" == false ]] && rm "$local_file"
                 log OK "Removed local (use global): $filename"
                 ((++deleted))
             fi
         else
-            # No global equivalent - this is unique
-            log INFO "Unique local rule: $filename"
-            
-            if [[ "$INTERACTIVE" == true ]]; then
-                echo ""
-                echo -e "${YELLOW}This rule doesn't exist in global. Options:${NC}"
-                echo "  1) Keep locally (repo-specific)"
-                echo "  2) Contribute to submodule (for all repos)"
-                echo "  3) Delete (not needed)"
-                read -p "Choice [1/2/3]: " choice
-                
-                case "$choice" in
-                    2)
-                        mkdir -p "$CONTRIBUTIONS_DIR"
-                        cp "$local_file" "$CONTRIBUTIONS_DIR/"
-                        CONTRIBUTIONS+=("$filename")
-                        log OK "Saved for contribution"
-                        ((++contributed))
-                        ;;
-                    3)
-                        [[ "$DRY_RUN" == false ]] && rm "$local_file"
-                        log OK "Deleted"
-                        ((++deleted))
-                        ;;
-                    *)
-                        log INFO "Keeping locally"
-                        ;;
-                esac
-            fi
+            log INFO "Unique local rule: $filename (keeping)"
         fi
     done
     
-    # Generate README
+    # Generate inference README
     [[ "$DRY_RUN" == false ]] && cat > "$LOCAL_INFERENCE/README.md" << EOF
 # Inference Rules
 
 ## Global Rules (from governance submodule)
 
-Use rules from \`.governance/ai/core/inference-rules/\`:
+See: \`.governance/ai/core/inference-rules/\`
 
-| Rule | Description | Docs |
-|------|-------------|------|
-$(for f in "$GLOBAL_INFERENCE"/*.md; do
-    [[ "$(basename "$f")" == "README.md" ]] && continue
-    name=$(basename "$f" .md)
-    echo "| [$name](.governance/ai/core/inference-rules/$name.md) | See file | [Link](.governance/ai/core/inference-rules/$name.md) |"
-done)
-
-## Local Rules (repo-specific only)
+## Local Rules (repo-specific)
 
 $(ls "$LOCAL_INFERENCE"/*.md 2>/dev/null | grep -v README.md | while read f; do
     echo "- $(basename "$f")"
@@ -318,18 +334,18 @@ done || echo "*None - all rules are global*")
 *Generated by align-repo.sh ($SESSION_ID)*
 EOF
 
-    log INFO "Deleted: $deleted, Contributions: ${#CONTRIBUTIONS[@]}"
+    log INFO "Deleted: $deleted duplicates, Contributions: ${#CONTRIBUTIONS[@]}"
 }
 
 #═══════════════════════════════════════════════════════════════════════════════
-# PHASE 4: Create Missing Files
+# PHASE 5: Create Missing Files
 #═══════════════════════════════════════════════════════════════════════════════
 create_missing() {
-    log STEP "Phase 4: Create Missing Files"
+    log STEP "Phase 5: Create Missing Files"
     
     local created=0
     
-    # Directories
+    # Create directories
     mkdir -p "$REPO_ROOT/.governance"
     mkdir -p "$REPO_ROOT/.governance-local"
     mkdir -p "$REPO_ROOT/.ai/ledger"
@@ -338,15 +354,13 @@ create_missing() {
     mkdir -p "$REPO_ROOT/.ai/bundles"
     mkdir -p "$REPO_ROOT/docs/_shared"
     
-    # Copy missing files from golden-image
+    # Files to copy from golden-image (only if missing)
     declare -A FILES_TO_CREATE=(
         [".governance/manifest.json"]="$GOLDEN_IMAGE/.governance/manifest.json"
         [".governance-local/overrides.yaml"]="$GOLDEN_IMAGE/.governance-local/overrides.yaml"
-        ["CLAUDE.md"]="$GOLDEN_IMAGE/CLAUDE.md"
         [".ai/ledger/LEDGER.md"]="$GOLDEN_IMAGE/.ai/ledger/LEDGER.md"
         [".ai/ledger/PLANNING.md"]="$GOLDEN_IMAGE/.ai/ledger/PLANNING.md"
         [".ai/ledger/EFFICIENCY.md"]="$GOLDEN_IMAGE/.ai/ledger/EFFICIENCY.md"
-        ["docs/_shared/router.md"]="$GOLDEN_IMAGE/docs/_shared/router.md"
     )
     
     for target in "${!FILES_TO_CREATE[@]}"; do
@@ -371,113 +385,6 @@ create_missing() {
 }
 
 #═══════════════════════════════════════════════════════════════════════════════
-# PHASE 5: Generate Documentation
-#═══════════════════════════════════════════════════════════════════════════════
-generate_docs() {
-    log STEP "Phase 5: Generate Documentation Pointers"
-    
-    [[ "$DRY_RUN" == true ]] && return 0
-    
-    # Simple .ai/README.md pointing to submodule
-    cat > "$REPO_ROOT/.ai/README.md" << 'HEREDOC'
-# AI Artifacts
-
-## Global Resources (Submodule)
-
-All documentation, inference rules, and bundles are in the governance submodule:
-
-| Resource | Location |
-|----------|----------|
-| Inference Rules | `.governance/ai/core/inference-rules/` |
-| Bundles | `.governance/ai/core/templates/golden-image/.ai/bundles/` |
-| Automation | `.governance/ai/core/automation/` |
-| Full Docs | `.governance/ai/README.md` |
-
-## Quick Commands
-
-```bash
-# Align repo
-.governance/ai/core/automation/align-repo.sh
-
-# Plan feature
-.governance/ai/core/automation/plan-feature.sh --request "..."
-
-# Research
-.governance/ai/core/automation/plan-feature.sh --research --question "..."
-```
-
-## Local Files
-
-| File | Purpose |
-|------|---------|
-| `ledger/LEDGER.md` | Implementation operations |
-| `ledger/PLANNING.md` | Planning sessions |
-| `inference/*.md` | Repo-specific rules only |
-| `_scratch/` | Ephemeral (gitignored) |
-HEREDOC
-    
-    log OK "Created: .ai/README.md (points to submodule)"
-}
-
-#═══════════════════════════════════════════════════════════════════════════════
-# PHASE 6: Summary
-#═══════════════════════════════════════════════════════════════════════════════
-print_summary() {
-    local duration=$(($(date +%s) - START_TIME))
-    
-    echo ""
-    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║           ALIGNMENT COMPLETE                                 ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo "Session:  $SESSION_ID"
-    echo "Duration: ${duration}s"
-    echo ""
-    
-    if [[ ${#CONTRIBUTIONS[@]} -gt 0 ]]; then
-        echo -e "${YELLOW}═══ CONTRIBUTIONS TO SUBMIT ═══${NC}"
-        echo "You offered to contribute these rules to the governance submodule:"
-        for c in "${CONTRIBUTIONS[@]}"; do
-            echo "  - $c"
-        done
-        echo ""
-        echo "To submit:"
-        echo "  1. cd .governance/ai"
-        echo "  2. git checkout -b contribute-$SESSION_ID"
-        echo "  3. cp $CONTRIBUTIONS_DIR/*.md core/inference-rules/"
-        echo "  4. git add . && git commit -m 'feat: Add inference rules from migration'"
-        echo "  5. git push && create PR"
-        echo ""
-    fi
-    
-    echo "Documentation: .ai/DOCUMENTATION.md"
-    echo ""
-    echo "Next steps:"
-    echo "  1. Review & customize CLAUDE.md"
-    echo "  2. Update docs/_shared/router.md for your repo"
-    echo "  3. git add . && git commit -m 'feat: Align to governance'"
-}
-
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --non-interactive) INTERACTIVE=false; shift ;;
-        --skip-update) SKIP_UPDATE=true; shift ;;
-        --dry-run) DRY_RUN=true; shift ;;
-        -h|--help) usage ;;
-        *) echo "Unknown: $1"; usage ;;
-    esac
-done
-
-# Header
-echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║       Repository Alignment (Migration Mode)                  ║${NC}"
-echo -e "${BLUE}╠══════════════════════════════════════════════════════════════╣${NC}"
-echo -e "${BLUE}║  Conflicts will be REPLACED with submodule version          ║${NC}"
-echo -e "${BLUE}║  You can contribute good local rules back to submodule      ║${NC}"
-echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
-echo ""
-
 # PHASE 6: Tooling Discovery
 #═══════════════════════════════════════════════════════════════════════════════
 discover_tooling() {
@@ -487,7 +394,6 @@ discover_tooling() {
     
     local TOOLING_FILE="$REPO_ROOT/.ai/TOOLING.md"
     
-    # Tool detection map: config_pattern|tool_name|docs_url
     declare -a TOOLS=(
         ".editorconfig|EditorConfig|https://editorconfig.org"
         ".envrc|direnv|https://direnv.net"
@@ -527,36 +433,30 @@ discover_tooling() {
         IFS='|' read -r pattern name docs <<< "$tool_entry"
         local found=""
         
-        # Check for pattern
         if [[ "$pattern" == *"*"* ]]; then
-            # Patterns with wildcards
             if [[ "$pattern" == ".github/workflows/"* ]]; then
-                # Special case for GitHub Actions
                 found=$(find .github/workflows -maxdepth 1 \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | head -1)
             else
                 found=$(find . -maxdepth 5 -name "${pattern##*/}" -not -path "./.governance/*" -not -path "./node_modules/*" 2>/dev/null | head -1)
             fi
         elif [[ "$pattern" == *"/" ]]; then
-            # Directory patterns
             [[ -d "$pattern" ]] && found="$pattern"
         else
-            # Exact file match at root, or search deeper
             if [[ -f "$pattern" ]]; then
                 found="$pattern"
             else
                 found=$(find . -maxdepth 5 -name "$pattern" -not -path "./.governance/*" -not -path "./node_modules/*" 2>/dev/null | head -1)
             fi
         fi
+        
         if [[ -n "$found" ]]; then
             local first_match=$(echo "$found" | head -1)
             detected+=("$name|$first_match|$docs")
             
-            # Build details section
             detected_details+="### $name\n"
             detected_details+="- **Config**: \`$first_match\`\n"
             detected_details+="- **Docs**: $docs\n"
             
-            # Special handling for known integrations
             if [[ "$name" == "direnv" ]] && grep -q "op://" "$first_match" 2>/dev/null; then
                 detected_details+="- **Integrations**: 1Password CLI ([Docs](https://developer.1password.com/docs/cli))\n"
             fi
@@ -566,7 +466,6 @@ discover_tooling() {
         fi
     done
     
-    # Generate TOOLING.md
     cat > "$TOOLING_FILE" << TOOLINGHEADER
 # Repository Tooling
 
@@ -588,13 +487,150 @@ TOOLINGHEADER
     
     log OK "Created: .ai/TOOLING.md (${#detected[@]} tools)"
 }
+
+#═══════════════════════════════════════════════════════════════════════════════
+# PHASE 7: Update .gitignore
+#═══════════════════════════════════════════════════════════════════════════════
+update_gitignore() {
+    log STEP "Phase 7: Update .gitignore"
+    
+    local GITIGNORE="$REPO_ROOT/.gitignore"
+    local patterns=(
+        ".ai/_scratch/"
+        ".governance-local/"
+        "*.backup-*"
+        "tofu.plan"
+        ".terraform/"
+        ".terraform.lock.hcl"
+    )
+    
+    local added=0
+    
+    for pattern in "${patterns[@]}"; do
+        if ! grep -qF "$pattern" "$GITIGNORE" 2>/dev/null; then
+            [[ "$DRY_RUN" == false ]] && echo "$pattern" >> "$GITIGNORE"
+            log OK "Added to .gitignore: $pattern"
+            ((++added))
+        fi
+    done
+    
+    log INFO "Added $added patterns to .gitignore"
+}
+
+#═══════════════════════════════════════════════════════════════════════════════
+# PHASE 8: Generate Documentation Pointers
+#═══════════════════════════════════════════════════════════════════════════════
+generate_docs() {
+    log STEP "Phase 8: Generate Documentation Pointers"
+    
+    [[ "$DRY_RUN" == true ]] && return 0
+    
+    cat > "$REPO_ROOT/.ai/README.md" << 'HEREDOC'
+# AI Artifacts
+
+## Global Resources (Submodule)
+
+All documentation, inference rules, and bundles are in the governance submodule:
+
+| Resource | Location |
+|----------|----------|
+| Inference Rules | `.governance/ai/core/inference-rules/` |
+| Bundles | `.governance/ai/core/templates/golden-image/.ai/bundles/` |
+| Automation | `.governance/ai/core/automation/` |
+| Full Docs | `.governance/ai/README.md` |
+
+## Quick Commands
+
+```bash
+# Align repo
+.governance/ai/core/automation/align-repo.sh
+
+# Plan feature
+.governance/ai/core/automation/plan-feature.sh --request "..."
+
+# Research
+.governance/ai/core/automation/plan-feature.sh --research --question "..."
+```
+
+## Local Files
+
+| File | Purpose |
+|------|---------|
+| `ledger/LEDGER.md` | Implementation operations |
+| `ledger/PLANNING.md` | Planning sessions |
+| `inference/*.md` | Repo-specific rules only |
+| `TOOLING.md` | Auto-detected tooling |
+| `_scratch/` | Ephemeral (gitignored) |
+HEREDOC
+    
+    log OK "Created: .ai/README.md (points to submodule)"
+}
+
+#═══════════════════════════════════════════════════════════════════════════════
+# Summary
+#═══════════════════════════════════════════════════════════════════════════════
+print_summary() {
+    local duration=$(($(date +%s) - START_TIME))
+    
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║           ALIGNMENT COMPLETE                                 ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo "Repository: $REPO_ROOT"
+    echo "Session:    $SESSION_ID"
+    echo "Duration:   ${duration}s"
+    echo ""
+    
+    if [[ ${#CONTRIBUTIONS[@]} -gt 0 ]]; then
+        echo -e "${YELLOW}═══ CONTRIBUTIONS TO SUBMIT ═══${NC}"
+        echo "You offered to contribute:"
+        for c in "${CONTRIBUTIONS[@]}"; do
+            echo "  - $c"
+        done
+        echo ""
+        echo "To submit:"
+        echo "  1. cd $REPO_ROOT/.governance/ai"
+        echo "  2. git checkout -b contribute-$SESSION_ID"
+        echo "  3. cp $CONTRIBUTIONS_DIR/*.md core/inference-rules/"
+        echo "  4. git push && create PR"
+        echo ""
+    fi
+    
+    echo "Next steps:"
+    echo "  1. Review & customize CLAUDE.md (if you have one)"
+    echo "  2. Create/update docs/_shared/router.md for your repo"
+    echo "  3. git add . && git commit -m 'feat: Align to governance'"
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --target) TARGET_DIR="$2"; shift 2 ;;
+        --non-interactive) INTERACTIVE=false; shift ;;
+        --skip-update) SKIP_UPDATE=true; shift ;;
+        --dry-run) DRY_RUN=true; shift ;;
+        -h|--help) usage ;;
+        *) echo "Unknown: $1"; usage ;;
+    esac
+done
+
+# Header
+echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║       Repository Alignment (Portable)                        ║${NC}"
+echo -e "${BLUE}╠══════════════════════════════════════════════════════════════╣${NC}"
+echo -e "${BLUE}║  Works on ANY repo - uses current directory by default      ║${NC}"
+echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
 # Run phases
+determine_target
+read_existing_references
 setup_submodule
 handle_conflicts
 migrate_inference
 create_missing
 discover_tooling
+update_gitignore
 generate_docs
 print_summary
-
-#═══════════════════════════════════════════════════════════════════════════════
