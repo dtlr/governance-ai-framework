@@ -3,12 +3,7 @@ set -euo pipefail
 
 # plan-feature.sh - Transform user request into executable implementation plan
 #
-# Usage:
-#   ./plan-feature.sh [--request "description"] [--dry-run] [--interactive]
-#
-# Integrates with:
-#   - .ai/ledger/LEDGER.md (operations audit)
-#   - .ai/ledger/EFFICIENCY.md (cost tracking)
+# Tracks all created files in MANIFEST.md for cleanup after deployment
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -23,6 +18,7 @@ NC='\033[0m'
 
 DRY_RUN=false
 INTERACTIVE=false
+CLEANUP=false
 REQUEST=""
 SESSION_ID=$(date +%Y%m%d-%H%M%S)
 START_TIME=$(date +%s)
@@ -34,32 +30,138 @@ Usage: $(basename "$0") [OPTIONS]
 Transform a user request into an executable implementation plan.
 
 Options:
-    --request "text"    The feature/change request (or use stdin)
+    --request "text"    The feature/change request
     --dry-run           Show prompts without executing
     --interactive       Run prompts interactively
+    --cleanup <dir>     Clean up ephemeral files after deployment
     -h, --help          Show this help message
 
-Outputs to:
-    .ai/_scratch/feature-<name>/   Generated artifacts
-    .ai/ledger/LEDGER.md           Operations audit entry
-    .ai/ledger/EFFICIENCY.md       Cost tracking (if exists)
+File Tracking:
+    All created files are logged to MANIFEST.md in the feature directory.
+    After successful deployment, run --cleanup to remove ephemeral files.
 
 Examples:
+    # Plan a feature
     $(basename "$0") --request "Add Redis caching"
-    $(basename "$0") --interactive
+    
+    # After deployment succeeds, clean up
+    $(basename "$0") --cleanup .ai/_scratch/feature-redis-cache
 EOF
     exit 0
 }
 
-# Ledger functions
+# Initialize manifest
+init_manifest() {
+    local feature_dir="$1"
+    local manifest="$feature_dir/MANIFEST.md"
+    
+    cat > "$manifest" << EOF
+# File Manifest
+
+**Session**: $SESSION_ID
+**Created**: $(date -Iseconds)
+
+## File Categories
+
+| Category | Keep After Deploy | Description |
+|----------|-------------------|-------------|
+| DOCS | ✅ Yes | Documentation (FEATURE.md, PDR.md) |
+| RESEARCH | ❌ No | Research artifacts |
+| PROMPTS | ❌ No | Execution prompts |
+| LOGS | ❌ No | Execution logs |
+| TEMP | ❌ No | Temporary working files |
+
+## Files Created
+
+| File | Category | Size | Keep |
+|------|----------|------|------|
+EOF
+}
+
+# Track file creation
+track_file() {
+    local feature_dir="$1"
+    local file_path="$2"
+    local category="$3"
+    local manifest="$feature_dir/MANIFEST.md"
+    
+    local keep="❌"
+    if [[ "$category" == "DOCS" ]]; then
+        keep="✅"
+    fi
+    
+    local size="0"
+    if [[ -f "$file_path" ]]; then
+        size=$(wc -c < "$file_path" | tr -d ' ')
+    fi
+    
+    echo "| \`$file_path\` | $category | ${size}B | $keep |" >> "$manifest"
+}
+
+# Cleanup ephemeral files
+cleanup_feature() {
+    local feature_dir="$1"
+    local manifest="$feature_dir/MANIFEST.md"
+    
+    if [[ ! -f "$manifest" ]]; then
+        echo -e "${RED}Error: No MANIFEST.md found in $feature_dir${NC}"
+        exit 1
+    fi
+    
+    echo -e "${BLUE}Cleaning up ephemeral files in $feature_dir${NC}"
+    echo ""
+    
+    local kept=0
+    local deleted=0
+    
+    # Parse manifest and delete non-DOCS files
+    while IFS='|' read -r _ file category _ keep _; do
+        file=$(echo "$file" | tr -d ' \`')
+        category=$(echo "$category" | tr -d ' ')
+        keep=$(echo "$keep" | tr -d ' ')
+        
+        if [[ -z "$file" ]] || [[ "$file" == "File" ]]; then
+            continue
+        fi
+        
+        if [[ "$keep" == "❌" ]]; then
+            if [[ -f "$file" ]]; then
+                rm -f "$file"
+                echo -e "  ${RED}✗ Deleted:${NC} $file"
+                ((++deleted))
+            fi
+        else
+            echo -e "  ${GREEN}✓ Kept:${NC} $file"
+            ((++kept))
+        fi
+    done < "$manifest"
+    
+    # Remove empty directories
+    find "$feature_dir" -type d -empty -delete 2>/dev/null || true
+    
+    # Update manifest with cleanup record
+    cat >> "$manifest" << EOF
+
+## Cleanup Record
+
+**Cleaned**: $(date -Iseconds)
+**Files kept**: $kept
+**Files deleted**: $deleted
+EOF
+    
+    echo ""
+    echo -e "${GREEN}Cleanup complete: $kept kept, $deleted deleted${NC}"
+}
+
+# Ledger function
 log_to_ledger() {
     local status="$1"
     local details="$2"
     local ledger_file="$REPO_ROOT/.ai/ledger/LEDGER.md"
     
-    # Create ledger if it doesn't exist
+    mkdir -p "$(dirname "$ledger_file")"
+    
     if [[ ! -f "$ledger_file" ]]; then
-        mkdir -p "$(dirname "$ledger_file")"
         cat > "$ledger_file" << 'LEDGER'
 # Operations Ledger
 
@@ -74,7 +176,6 @@ LEDGER
     local duration=$((end_time - START_TIME))
     local timestamp=$(date -Iseconds)
     
-    # Append entry
     cat >> "$ledger_file" << ENTRY
 
 ---
@@ -88,27 +189,6 @@ LEDGER
 $details
 
 ENTRY
-    
-    echo -e "${GREEN}Logged to LEDGER.md${NC}"
-}
-
-log_efficiency() {
-    local operation_type="$1"
-    local status="$2"
-    local efficiency_file="$REPO_ROOT/.ai/ledger/EFFICIENCY.md"
-    
-    # Only log if efficiency file exists
-    if [[ ! -f "$efficiency_file" ]]; then
-        return 0
-    fi
-    
-    local end_time=$(date +%s)
-    local duration=$((end_time - START_TIME))
-    local timestamp=$(date +%Y-%m-%d)
-    
-    # Append to rolling log section (simplified - full tracking would need more)
-    echo "" >> "$efficiency_file"
-    echo "| $timestamp | feature-planning | $operation_type | ${duration}s | $status |" >> "$efficiency_file"
 }
 
 # Parse arguments
@@ -117,6 +197,7 @@ while [[ $# -gt 0 ]]; do
         --request) REQUEST="$2"; shift 2 ;;
         --dry-run) DRY_RUN=true; shift ;;
         --interactive) INTERACTIVE=true; shift ;;
+        --cleanup) CLEANUP=true; cleanup_feature "$2"; exit 0 ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
@@ -150,7 +231,7 @@ mkdir -p "$REPO_ROOT/.ai/ledger"
 if [[ -n "$REQUEST" ]]; then
     echo "$REQUEST" > "$REPO_ROOT/.ai/_scratch/user-request.md"
 elif [[ ! -f "$REPO_ROOT/.ai/_scratch/user-request.md" ]]; then
-    echo -e "${YELLOW}No request provided. Enter your request (Ctrl+D when done):${NC}"
+    echo -e "${YELLOW}Enter your request (Ctrl+D when done):${NC}"
     cat > "$REPO_ROOT/.ai/_scratch/user-request.md"
 fi
 
@@ -160,43 +241,34 @@ echo -e "${BLUE}╠════════════════════�
 echo -e "${BLUE}║  Session: $SESSION_ID                              ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${CYAN}Request:${NC}"
-cat "$REPO_ROOT/.ai/_scratch/user-request.md" | head -5
-echo ""
-echo -e "Mode: ${YELLOW}$(if $DRY_RUN; then echo "DRY RUN"; elif $INTERACTIVE; then echo "INTERACTIVE"; else echo "HEADLESS"; fi)${NC}"
-echo ""
-
-# List prompts
-PROMPTS=($(find "$BUNDLE_PATH/prompts" -name "*.md" | sort))
-
-echo -e "${BLUE}Pipeline stages:${NC}"
-for prompt in "${PROMPTS[@]}"; do
-    echo "  → $(basename "$prompt" .md)"
-done
-echo ""
 
 if $DRY_RUN; then
-    echo -e "${YELLOW}DRY RUN: Showing prompts without executing${NC}"
-    log_to_ledger "DRY_RUN" "Dry run only - no execution"
+    echo -e "${YELLOW}DRY RUN mode${NC}"
     exit 0
 fi
 
 # Check for claude CLI
 if ! command -v claude &> /dev/null; then
     echo -e "${RED}Error: claude CLI not found${NC}"
-    log_to_ledger "ERROR" "Claude CLI not found"
     exit 1
 fi
 
-# Track stage results
-STAGES_COMPLETED=0
-STAGES_FAILED=0
-BLOCKED=false
-WARNINGS=""
+# Create feature directory (will be renamed after we know the feature name)
+TEMP_FEATURE_DIR="$REPO_ROOT/.ai/_scratch/feature-$SESSION_ID"
+mkdir -p "$TEMP_FEATURE_DIR/research"
+mkdir -p "$TEMP_FEATURE_DIR/prompts"
+
+# Initialize manifest
+init_manifest "$TEMP_FEATURE_DIR"
+
+# Track initial files
+track_file "$TEMP_FEATURE_DIR" "$REPO_ROOT/.ai/_scratch/user-request.md" "TEMP"
 
 # Execute prompts
+PROMPTS=($(find "$BUNDLE_PATH/prompts" -name "*.md" | sort))
 TOTAL=${#PROMPTS[@]}
 CURRENT=0
+STAGES_COMPLETED=0
 
 for prompt in "${PROMPTS[@]}"; do
     ((++CURRENT))
@@ -204,106 +276,80 @@ for prompt in "${PROMPTS[@]}"; do
     
     echo -e "${BLUE}[$CURRENT/$TOTAL] ${PROMPT_NAME}${NC}"
     
-    if $INTERACTIVE; then
-        echo -e "${YELLOW}Press Enter to execute or 's' to skip:${NC}"
-        read -t 10 -n 1 response || response=""
-        if [[ "$response" == "s" ]]; then
-            echo "Skipped"
-            continue
-        fi
-    fi
-    
     cd "$REPO_ROOT"
+    LOG_FILE="$TEMP_FEATURE_DIR/${PROMPT_NAME}.log"
     
-    # Execute with logging
-    LOG_FILE=".ai/_scratch/${PROMPT_NAME}.log"
     if claude -p "$(cat "$prompt")" --allowedTools Edit,Write,Bash 2>&1 | tee "$LOG_FILE"; then
-        echo -e "${GREEN}✓ ${PROMPT_NAME} complete${NC}"
         ((++STAGES_COMPLETED))
+        track_file "$TEMP_FEATURE_DIR" "$LOG_FILE" "LOGS"
+        echo -e "${GREEN}✓ ${PROMPT_NAME}${NC}"
         
-        # Check for validation blocking
-        if [[ "$PROMPT_NAME" == *"validate"* ]]; then
-            if grep -q "BLOCKED" ".ai/_scratch/validation.md" 2>/dev/null; then
-                BLOCKED=true
-                echo -e "${RED}⛔ Validation BLOCKED further progress${NC}"
-                log_to_ledger "BLOCKED" "**Blocked at validation stage**
-
-Stages completed: $STAGES_COMPLETED/$TOTAL
-
-See: .ai/_scratch/validation.md for details"
-                exit 1
-            fi
-            
-            # Capture warnings
-            if grep -q "WARNING" ".ai/_scratch/validation.md" 2>/dev/null; then
-                WARNINGS=$(grep -A2 "WARNING" ".ai/_scratch/validation.md" | head -10)
-            fi
-        fi
+        # Track generated files based on stage
+        case "$PROMPT_NAME" in
+            *research_codebase*)
+                track_file "$TEMP_FEATURE_DIR" "$TEMP_FEATURE_DIR/research/codebase.md" "RESEARCH"
+                ;;
+            *research_docs*)
+                track_file "$TEMP_FEATURE_DIR" "$TEMP_FEATURE_DIR/research/docs.md" "RESEARCH"
+                ;;
+            *validate*)
+                track_file "$TEMP_FEATURE_DIR" "$TEMP_FEATURE_DIR/validation.md" "RESEARCH"
+                ;;
+            *generate_feature*)
+                track_file "$TEMP_FEATURE_DIR" "$TEMP_FEATURE_DIR/FEATURE.md" "DOCS"
+                ;;
+            *generate_pdr*)
+                track_file "$TEMP_FEATURE_DIR" "$TEMP_FEATURE_DIR/PDR.md" "DOCS"
+                ;;
+            *decompose*)
+                track_file "$TEMP_FEATURE_DIR" "$TEMP_FEATURE_DIR/tasks.json" "DOCS"
+                ;;
+            *generate_prompts*)
+                for pfile in "$TEMP_FEATURE_DIR/prompts/"*.md; do
+                    track_file "$TEMP_FEATURE_DIR" "$pfile" "PROMPTS"
+                done
+                track_file "$TEMP_FEATURE_DIR" "$TEMP_FEATURE_DIR/execute.sh" "PROMPTS"
+                ;;
+        esac
     else
         echo -e "${RED}✗ ${PROMPT_NAME} failed${NC}"
-        ((++STAGES_FAILED))
-        
-        log_to_ledger "FAILED" "**Failed at stage: $PROMPT_NAME**
-
-Stages completed: $STAGES_COMPLETED
-Stages failed: $STAGES_FAILED
-
-Check: .ai/_scratch/${PROMPT_NAME}.log"
+        log_to_ledger "FAILED" "Failed at: $PROMPT_NAME"
         exit 1
     fi
     echo ""
 done
 
-# Find generated feature directory
-FEATURE_DIR=$(ls -td "$REPO_ROOT/.ai/_scratch/feature-"* 2>/dev/null | head -1)
-FEATURE_NAME=$(basename "$FEATURE_DIR" 2>/dev/null || echo "unknown")
+# Finalize manifest
+cat >> "$TEMP_FEATURE_DIR/MANIFEST.md" << EOF
 
-# Count generated tasks
-TASK_COUNT=0
-if [[ -f "$FEATURE_DIR/tasks.json" ]]; then
-    TASK_COUNT=$(grep -c '"id"' "$FEATURE_DIR/tasks.json" 2>/dev/null || echo "0")
-fi
+## Summary
 
-# Log success to ledger
-log_to_ledger "COMPLETED" "**Feature: $FEATURE_NAME**
+**Total files**: $(grep -c "^\|" "$TEMP_FEATURE_DIR/MANIFEST.md" || echo "?")
+**Keep after deploy**: $(grep -c "✅" "$TEMP_FEATURE_DIR/MANIFEST.md" || echo "0")
+**Delete after deploy**: $(grep -c "❌" "$TEMP_FEATURE_DIR/MANIFEST.md" || echo "0")
 
-Stages: $STAGES_COMPLETED/$TOTAL completed
-Tasks generated: $TASK_COUNT
-$(if [[ -n "$WARNINGS" ]]; then echo "
-**Warnings:**
-$WARNINGS"; fi)
+## Cleanup Command
 
-**Artifacts:**
-- FEATURE.md: $(test -f "$FEATURE_DIR/FEATURE.md" && echo "✓" || echo "✗")
-- PDR.md: $(test -f "$FEATURE_DIR/PDR.md" && echo "✓" || echo "✗")  
-- tasks.json: $(test -f "$FEATURE_DIR/tasks.json" && echo "✓" || echo "✗")
-- prompts/: $(ls "$FEATURE_DIR/prompts/"*.md 2>/dev/null | wc -l) files
-
-**Next:** Review artifacts, then run:
+After successful deployment:
 \`\`\`bash
-$FEATURE_DIR/execute.sh
-\`\`\`"
+.governance/ai/core/automation/plan-feature.sh --cleanup $TEMP_FEATURE_DIR
+\`\`\`
+EOF
 
-# Log to efficiency tracker
-log_efficiency "plan" "complete"
+# Log success
+log_to_ledger "COMPLETED" "**Feature planned**
+
+Stages: $STAGES_COMPLETED/$TOTAL
+Directory: $TEMP_FEATURE_DIR
+
+See MANIFEST.md for file tracking."
 
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║           FEATURE PLANNING COMPLETE                          ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Session:  ${CYAN}$SESSION_ID${NC}"
-echo -e "Feature:  ${CYAN}$FEATURE_NAME${NC}"
-echo -e "Stages:   ${GREEN}$STAGES_COMPLETED${NC}/$TOTAL completed"
-echo -e "Tasks:    ${CYAN}$TASK_COUNT${NC} generated"
-if [[ -n "$WARNINGS" ]]; then
-    echo -e "Warnings: ${YELLOW}Yes - review validation.md${NC}"
-fi
+echo "Artifacts: $TEMP_FEATURE_DIR/"
+echo "Manifest:  $TEMP_FEATURE_DIR/MANIFEST.md"
 echo ""
-echo "Artifacts: $FEATURE_DIR/"
-echo ""
-echo "Next steps:"
-echo "  1. Review FEATURE.md and PDR.md"
-echo "  2. Check validation.md for warnings"
-echo "  3. Execute: $FEATURE_DIR/execute.sh"
-echo ""
-echo -e "${GREEN}Logged to .ai/ledger/LEDGER.md${NC}"
+echo "After deployment succeeds, clean up with:"
+echo "  $(basename "$0") --cleanup $TEMP_FEATURE_DIR"
