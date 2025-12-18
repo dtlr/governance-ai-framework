@@ -16,6 +16,7 @@ These rules are **global** - they apply to every repository using the governance
 | **File Lifecycle** | `file-lifecycle.md` | Create/update/delete workflow | Modifying files |
 | **Repo Router** | `repo-router.md` | Directory→purpose mapping | Navigating repo |
 | **Submodule Management** | `submodule-management.md` | Governance version/update workflow | Updating governance |
+| **Cookbook Patterns** | `claude-cookbook-patterns.md` | Efficiency/accuracy patterns from Anthropic | Optimization tasks |
 
 ---
 
@@ -70,6 +71,16 @@ Key points:
 3. Version and tag
 4. Update consuming repos
 5. Validate installation
+
+### Cookbook Patterns (`claude-cookbook-patterns.md`)
+**Core principle**: Efficiency and accuracy patterns from Anthropic's official cookbooks.
+
+Key patterns:
+- Prompt caching (90% cost reduction, 2x latency improvement)
+- Context compaction (58% token savings)
+- Extended thinking (improved accuracy)
+- Orchestrator-workers (complex task decomposition)
+- Evaluator-optimizer (iterative refinement)
 
 ---
 

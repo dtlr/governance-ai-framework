@@ -2,7 +2,7 @@
 
 **Unified governance system for AI assistants across all DTLR repositories**
 
-Version: 1.3.0
+Version: 1.4.0
 
 
 ## What This Is
@@ -244,7 +244,7 @@ SAVINGS: 83% reduction
 
 ## Versioning
 
-### Current Version: 1.3.0
+### Current Version: 1.4.0
 
 **Breaking Changes**: Major version bump (e.g., 2.0.0)
 - Require migration guide in `MIGRATIONS/`

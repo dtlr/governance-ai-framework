@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2025-12-17
+
+### Added
+- **Claude Cookbook Patterns** (`core/inference-rules/claude-cookbook-patterns.md`)
+  - Comprehensive pointer guide to Anthropic's official cookbook patterns
+  - Efficiency patterns: prompt caching (90% cost reduction), context compaction (58% token savings)
+  - Accuracy patterns: extended thinking, evaluator-optimizer, structured output
+  - Architecture patterns: prompt chaining, routing, orchestrator-workers
+  - Agent SDK patterns: research agent, chief of staff, observability
+  - Application recommendations for governance framework
+
+---
+
 ## [1.3.0] - 2025-12-17
 
 ### Added
@@ -270,6 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.4.0 | 2025-12-17 | Claude Cookbook patterns pointer guide |
 | 1.3.0 | 2025-12-17 | Inference rules index + routing/reference updates |
 | 1.2.0 | 2025-12-17 | AI submodule management guide |
 | 1.1.0 | 2025-12-17 | Golden image template + 3 inference rules |
