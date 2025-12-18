@@ -1,0 +1,4 @@
+[submodule ".governance/ai"]
+	path = .governance/ai
+	url = https://github.com/<ORG>/<GOVERNANCE_REPO>.git
+	branch = main

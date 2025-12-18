@@ -1,0 +1,20 @@
+# Repo-local governance overrides
+# This file is consumed by the governance framework (submodule).
+#
+# Use this to enable/disable policies, declare modules, set integrations, etc.
+
+repo:
+  name: "<REPO_NAME>"
+  owner_team: "<TEAM>"
+  maturity: "template"   # template | pilot | prod
+
+policies:
+  governance_auto_update: false
+  enforce_no_scratch_commits: true
+  max_new_files_per_batch: 20
+
+ai:
+  artifacts_root: ".ai"
+  scratch_dir: ".ai/_scratch"
+  ledger_path: ".ai/ledger/LEDGER.md"
+  bundles_dir: ".ai/bundles"

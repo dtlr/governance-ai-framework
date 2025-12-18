@@ -1,0 +1,12 @@
+# Repo Router (Template)
+
+Copy to: `docs/_shared/router.md`
+
+Purpose: map your repo’s unique layout into deterministic AI routing rules.
+
+Include:
+- repository layout map
+- document locations
+- routing triggers
+- disallowed/noisy dirs
+- maintenance rules

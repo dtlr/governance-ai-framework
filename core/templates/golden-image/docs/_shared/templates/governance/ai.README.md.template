@@ -1,0 +1,17 @@
+# .ai/ (AI Artifacts) — Template
+
+Copy to: `.ai/README.md`
+
+## Purpose
+This directory contains **AI artifacts** and enforces a deterministic artifact lifecycle.
+
+## Rules
+- `.ai/_scratch/` is ephemeral and MUST NOT be committed.
+- `.ai/ledger/LEDGER.md` is append-only and MUST be updated every AI run.
+
+## Allowed contents
+- `ledger/` — run logs (committed)
+- `bundles/` — executable planning bundles (committed)
+- `inference/` — process rules (committed)
+- `_out/` — generated artifacts explicitly approved to keep (committed)
+- `_scratch/` — temporary working artifacts (never committed)
