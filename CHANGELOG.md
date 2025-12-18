@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2025-12-17
+
+### Added
+- **Inference Rules Index** (`core/inference-rules/README.md`)
+  - Central index of all AI behavioral inference rules
+  - Rule catalog with purpose and load triggers
+  - Summaries of each rule
+  - Loading strategy guidelines
+  - Instructions for adding new rules
+
+### Changed
+- **Updated all routing/reference files** to point to correct locations
+  - `core/README.md` - Added complete directory structure and inference rules table
+  - `README.md` - Updated directory tree with all 6 inference rules + golden-image
+  - `DIRECTORY_CONTRACT.md` - Fixed paths to point to submodule locations
+  - `.ai/inference/README.md` (golden-image) - Added global rules reference and precedence
+
+---
+
 ## [1.2.0] - 2025-12-17
 
 ### Added
@@ -251,6 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.3.0 | 2025-12-17 | Inference rules index + routing/reference updates |
 | 1.2.0 | 2025-12-17 | AI submodule management guide |
 | 1.1.0 | 2025-12-17 | Golden image template + 3 inference rules |
 | 1.0.0 | 2025-12-16 | Initial release - 3-layer system, micro-batch mode, lazy loading |

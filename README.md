@@ -2,7 +2,7 @@
 
 **Unified governance system for AI assistants across all DTLR repositories**
 
-Version: 1.0.0
+Version: 1.3.0
 
 
 ## What This Is
@@ -81,8 +81,13 @@ Each layer **inherits** from previous layers (additive, not replacement).
 │   │   ├── SYSTEM.md                  ← Fundamental behavioral rules
 │   │   └── AGENT_CONTRACT.md          ← AI responsibilities & boundaries
 │   ├── inference-rules/
+│   │   ├── README.md                  ← Index of all inference rules
 │   │   ├── lazy-loading.md            ← When to load context (triggers)
-│   │   └── three-tier-system.md       ← Context tiers (root/module/deep)
+│   │   ├── three-tier-system.md       ← Context tiers (root/module/deep)
+│   │   ├── directory-contract.md      ← A/B/C file classification
+│   │   ├── file-lifecycle.md          ← Create/update/delete workflow
+│   │   ├── repo-router.md             ← Directory→purpose mapping
+│   │   └── submodule-management.md    ← Governance version updates
 │   ├── conventions/
 │   │   └── git-workflow.md            ← Commit standards, co-authorship
 │   ├── automation/
@@ -90,6 +95,7 @@ Each layer **inherits** from previous layers (additive, not replacement).
 │   ├── schemas/
 │   │   └── manifest.schema.json       ← JSON schema for manifest.json
 │   └── templates/
+│       ├── golden-image/              ← Complete repo bootstrap template
 │       └── settings.local.json.template
 │
 ├── iac/                               ← Layer 2: Infrastructure repos
@@ -196,10 +202,10 @@ git submodule update --init
 
 # Pin to specific version
 cd .governance/ai
-git checkout v1.0.0
+git checkout v1.3.0
 cd ../..
 git add .governance/ai
-git commit -m "feat: Add governance submodule at v1.0.0"
+git commit -m "feat: Add governance submodule at v1.3.0"
 ```
 
 
@@ -238,7 +244,7 @@ SAVINGS: 83% reduction
 
 ## Versioning
 
-### Current Version: 1.0.0
+### Current Version: 1.3.0
 
 **Breaking Changes**: Major version bump (e.g., 2.0.0)
 - Require migration guide in `MIGRATIONS/`
@@ -281,11 +287,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - **Routing Logic**: `00_INDEX/ROUTING.md`
 
 ### Deep Dive
+- **Inference Rules Index**: `core/inference-rules/README.md`
 - **Lazy Loading**: `core/inference-rules/lazy-loading.md`
 - **Three-Tier System**: `core/inference-rules/three-tier-system.md`
+- **Directory Contract**: `core/inference-rules/directory-contract.md`
+- **File Lifecycle**: `core/inference-rules/file-lifecycle.md`
+- **Repo Router**: `core/inference-rules/repo-router.md`
+- **Submodule Management**: `core/inference-rules/submodule-management.md`
 - **Git Workflow**: `core/conventions/git-workflow.md`
 - **Deployment Safety**: `iac/conventions/deployment-safety.md`
 - **Terraform Standards**: `terraform/conventions/tofu-standards.md`
+- **Golden Image Template**: `core/templates/golden-image/README.md`
 
 
 ## Support

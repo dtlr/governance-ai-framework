@@ -5,11 +5,49 @@ Universal AI governance rules applicable to **all** DTLR repositories (IaC, appl
 ## Purpose
 
 This repository contains:
-- Universal lazy-loading inference rules
+- Universal inference rules for AI behavior
 - Git workflow standards
 - Commit message conventions
 - Issue tracking patterns
 - Base CLAUDE.md/AGENTS.md templates
+- Golden-image template for bootstrapping repos
+
+## Directory Structure
+
+```
+core/
+├── inference-rules/          # AI behavioral inference rules
+│   ├── README.md            # Index of all inference rules
+│   ├── lazy-loading.md      # Load context on-demand, not upfront
+│   ├── three-tier-system.md # Root/Module/Deep tier system
+│   ├── directory-contract.md # A/B/C file classification
+│   ├── file-lifecycle.md    # Create/update/delete rules
+│   ├── repo-router.md       # Directory→purpose mapping
+│   └── submodule-management.md # Submodule version/update workflow
+├── rules/                    # Core behavioral rules
+│   ├── SYSTEM.md            # Fundamental AI behavior
+│   └── AGENT_CONTRACT.md    # AI responsibilities
+├── conventions/              # Standard conventions
+│   └── git-workflow.md      # Git commit/branch standards
+├── validation/               # Validation checklists
+│   ├── CI_CHECKLIST.md      # CI/CD requirements
+│   └── INVARIANTS.md        # System invariants
+└── templates/                # Reusable templates
+    └── golden-image/        # Complete repo bootstrap template
+```
+
+## Inference Rules
+
+AI assistants should load these rules based on context:
+
+| Rule | Purpose | When to Load |
+|------|---------|--------------|
+| `lazy-loading.md` | Load context on-demand | Always (Tier 1) |
+| `three-tier-system.md` | Progressive context disclosure | Always (Tier 1) |
+| `directory-contract.md` | A/B/C file classification | When creating files |
+| `file-lifecycle.md` | Create/update/delete workflow | When modifying files |
+| `repo-router.md` | Directory purpose mapping | When navigating repo |
+| `submodule-management.md` | Governance submodule updates | When updating governance |
 
 ## Usage
 
